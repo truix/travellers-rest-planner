@@ -277,7 +277,7 @@ pytest -v          # verbose
 
 ## Legal
 
-This is a **fan-made tool** for a game I love. It is not affiliated with, endorsed by, or sponsored by Isolated games Productions.
+This is a **fan-made tool** for a game I love. It is not affiliated with, endorsed by, or sponsored by Isolated games.
 
 The repository contains **only my own code**. No game assets — sprites, localization strings, ScriptableObject contents, scene art — are bundled. Every extraction script reads from a local copy of the game that the user already owns. The `data/` and `dumps/` folders are generated locally and **gitignored**.
 
