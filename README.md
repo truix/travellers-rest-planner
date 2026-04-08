@@ -285,7 +285,7 @@ If you are a Louqou employee and would like this tool taken down or modified, pl
 
 The decompiled C# files in `dumps/*.cs` are gitignored — they're produced by [`ilspycmd`](https://github.com/icsharpcode/ILSpy) against a local copy of `Assembly-CSharp.dll` and are useful only for development reference.
 
-[Travellers Rest on Steam](https://store.steampowered.com/app/1139980/Travellers_Rest/) · [Isolated Games]([https://louqou.com/](https://www.isolatedgames.com/))
+[Travellers Rest on Steam](https://store.steampowered.com/app/1139980/Travellers_Rest/) · [Isolated Games](https://www.isolatedgames.com/)
 
 ## License
 
