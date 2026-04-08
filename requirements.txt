@@ -1,0 +1,18 @@
+# Travellers Rest Planner — runtime + extraction dependencies
+# Pinned to last-known-good versions; loosen if you hit compatibility issues.
+
+# ── Web server ──────────────────────────────────────────────
+fastapi>=0.110
+uvicorn[standard]>=0.27
+watchdog>=4.0
+
+# ── Save file parsing (.NET BinaryFormatter via NRBF) ───────
+pypdn>=1.0.6
+
+# ── Asset extraction (Unity bundles) ────────────────────────
+UnityPy>=1.20
+TypeTreeGeneratorAPI>=0.0.10
+Pillow>=10.0
+
+# ── Tests ───────────────────────────────────────────────────
+pytest>=8.0
