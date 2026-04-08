@@ -2,7 +2,7 @@
 
 # Travellers Rest Planner
 
-**A research, strategy, and live save-reading tool for [Travellers Rest](https://store.steampowered.com/app/1139980/Travellers_Rest/) — the cozy tavern-management game by Louqou.**
+**A research, strategy, and live save-reading tool for [Travellers Rest](https://store.steampowered.com/app/1139980/Travellers_Rest/) — the cozy tavern-management game by Isolated games.**
 
 *A better wiki, a brewing dashboard, a menu planner, a world map, and a live game-state reader — all in one self-hosted page.*
 
@@ -277,7 +277,7 @@ pytest -v          # verbose
 
 ## Legal
 
-This is a **fan-made tool** for a game I love. It is not affiliated with, endorsed by, or sponsored by Louqou Productions.
+This is a **fan-made tool** for a game I love. It is not affiliated with, endorsed by, or sponsored by Isolated games Productions.
 
 The repository contains **only my own code**. No game assets — sprites, localization strings, ScriptableObject contents, scene art — are bundled. Every extraction script reads from a local copy of the game that the user already owns. The `data/` and `dumps/` folders are generated locally and **gitignored**.
 
