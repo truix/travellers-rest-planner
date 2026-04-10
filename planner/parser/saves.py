@@ -183,6 +183,7 @@ class GameState:
     player_name: str = ""
     quests_done: set[int] = field(default_factory=set)
     quests_active: dict[int, int] = field(default_factory=dict)  # qid -> progress
+    shop_stock: dict[int, dict[int, int]] = field(default_factory=dict)  # shop_id -> {item_id: amount}
 
 
 def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.0) -> GameState:
@@ -288,6 +289,29 @@ def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.
     except Exception:
         pass
 
+    # Shop stock — what vendors are currently selling today
+    shop_stock: dict[int, dict[int, int]] = {}
+    try:
+        for shop_save in (getattr(root, "shopsSaves", None) or []):
+            try:
+                sid = int(getattr(shop_save, "id", 0))
+                items_save = getattr(shop_save, "itemsAmountSave", []) or []
+                stock = {}
+                for item_save in items_save:
+                    try:
+                        iid = int(getattr(item_save, "id", 0))
+                        amt = int(getattr(item_save, "amount", 0))
+                        if iid:
+                            stock[iid] = amt
+                    except Exception:
+                        pass
+                if stock:
+                    shop_stock[sid] = stock
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     return GameState(
         slot_id=slot_id,
         save_path=save_path,
@@ -304,6 +328,7 @@ def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.
         player_name=player_name,
         quests_done=quests_done,
         quests_active=quests_active,
+        shop_stock=shop_stock,
     )
 
 

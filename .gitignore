@@ -73,3 +73,5 @@ scripts/deobfuscate.py
 scripts/deobfuscate_all.py
 scripts/fix_csproj.py
 scripts/trainer.py
+scripts/savepatch.py
+resolve

@@ -14,5 +14,8 @@ UnityPy>=1.20
 TypeTreeGeneratorAPI>=0.0.10
 Pillow>=10.0
 
+# ── Sharing (optional — for --tunnel) ───────────────────────
+pyngrok>=7.0
+
 # ── Tests ───────────────────────────────────────────────────
 pytest>=8.0

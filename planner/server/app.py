@@ -128,10 +128,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Travellers Rest Planner", lifespan=lifespan)
 
-# Allow Vite dev server (5173) to hit the API in development
+# CORS — restrict when sharing, open for localhost dev
+import secrets as _secrets
+SHARE_TOKEN = _secrets.token_urlsafe(16)
+_allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8765",
+    "http://127.0.0.1:8765",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -186,7 +194,6 @@ def api_state(slot: str | None = Query(default=None)):
         return JSONResponse({"error": "no save"}, status_code=404)
     return {
         "slot_id": state.slot_id,
-        "save_path": state.save_path,
         "save_mtime": state.save_mtime,
         "money_copper": state.money_copper,
         "tavern_rep": state.tavern_rep,
@@ -214,7 +221,7 @@ def api_plan(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return JSONResponse({"error": f"save parse failed: {e}"}, status_code=500)
+        return JSONResponse({"error": "save parse failed"}, status_code=500)
     if state is None:
         return JSONResponse({"error": "no save"}, status_code=404)
     try:
@@ -224,7 +231,7 @@ def api_plan(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return JSONResponse({"error": f"plan build failed: {e}"}, status_code=500)
+        return JSONResponse({"error": "plan build failed"}, status_code=500)
 
 
 def _to_jsonable(obj):
@@ -264,18 +271,22 @@ def _vendor_locations() -> dict[str, list[dict]]:
 @app.get("/api/vendors")
 def api_vendors(slot: str | None = Query(default=None),
                 lang: str = Query(default=DEFAULT_LANG)):
-    """Every vendor with the items they sell, localized."""
+    """Every vendor with the items they sell, localized. Includes current daily stock from save."""
     cat = load_catalog()
     tr = Translator(lang)
     locs = _vendor_locations()
+    state = _load_state_for(slot)
+    shop_stock = state.shop_stock if state else {}
     out = []
     for s in cat.shops:
+        current_stock = shop_stock.get(s.shop_id, {})
         items = []
         for entry in s.items:
             ipid = (entry.get("item") or {}).get("m_PathID", 0)
             it = cat.items_by_path_id.get(ipid)
             if not it:
                 continue
+            in_stock_qty = current_stock.get(it.item_id, None)
             items.append({
                 "item_id": it.item_id,
                 "name": tr.item(it.item_id, it.name_id, it.name),
@@ -286,7 +297,28 @@ def api_vendors(slot: str | None = Query(default=None),
                 "min": entry.get("min", 0),
                 "max": entry.get("max", 0),
                 "unlimited": bool(entry.get("unlimited", 0)),
+                "in_stock": in_stock_qty,  # None = unknown, 0 = sold out, >0 = available
             })
+        # Also add any items in the save stock that aren't in the static catalog
+        # (rotating daily items)
+        static_ids = {i["item_id"] for i in items}
+        for iid, qty in current_stock.items():
+            if iid not in static_ids:
+                it = cat.items_by_id.get(iid)
+                if it:
+                    items.append({
+                        "item_id": iid,
+                        "name": tr.item(it.item_id, it.name_id, it.name),
+                        "buy_copper": it.buy_copper,
+                        "sell_copper": it.sell_copper,
+                        "weight": 0,
+                        "always": False,
+                        "min": 0,
+                        "max": 0,
+                        "unlimited": False,
+                        "in_stock": qty,
+                        "daily_special": True,
+                    })
         loc = locs.get(s.name.lower(), [])
         out.append({
             "shop_id": s.shop_id,
@@ -295,6 +327,7 @@ def api_vendors(slot: str | None = Query(default=None),
             "item_count": len(items),
             "items": items,
             "locations": loc,
+            "has_live_stock": bool(current_stock),
         })
     return out
 
@@ -572,6 +605,56 @@ def api_brewing(slot: str | None = Query(default=None),
     return _to_jsonable(plans)
 
 
+# ---- Shared shopping cart (per save slot, synced across all connected clients) ----
+_carts: dict[str, list[dict]] = {}  # slot_id -> [{item_id, name, qty, buy_copper, vendor}]
+
+
+@app.get("/api/cart")
+def api_cart(slot: str | None = Query(default=None)):
+    sid = slot or "default"
+    return _carts.get(sid, [])
+
+
+@app.post("/api/cart")
+async def api_cart_update(data: dict):
+    sid = str(data.get("slot", "default"))[:50]
+    action = data.get("action", "set")
+    # Validate slot against real save slots
+    valid_slots = {s.slot_id for s in discover_slots()} | {"default"}
+    if sid not in valid_slots:
+        return JSONResponse({"error": "invalid slot"}, status_code=400)
+    if action == "set":
+        items = data.get("items", [])[:200]  # cap at 200 items
+        _carts[sid] = items
+    elif action == "add":
+        cart = _carts.setdefault(sid, [])
+        if len(cart) >= 200:
+            return JSONResponse({"error": "cart full (max 200)"}, status_code=400)
+        item = data.get("item", {})
+        # Validate item shape
+        if not isinstance(item.get("item_id"), int):
+            return JSONResponse({"error": "invalid item"}, status_code=400)
+        existing = next((i for i in cart if i.get("item_id") == item.get("item_id")), None)
+        if existing:
+            existing["qty"] = min(existing.get("qty", 0) + item.get("qty", 1), 9999)
+        else:
+            cart.append({
+                "item_id": int(item["item_id"]),
+                "name": str(item.get("name", ""))[:100],
+                "qty": min(int(item.get("qty", 1)), 9999),
+                "buy_copper": int(item.get("buy_copper", 0)),
+                "vendor": str(item.get("vendor", ""))[:50],
+            })
+    elif action == "remove":
+        iid = data.get("item_id")
+        _carts[sid] = [i for i in _carts.get(sid, []) if i.get("item_id") != iid]
+    elif action == "clear":
+        _carts[sid] = []
+    # Broadcast to all connected clients
+    await manager.broadcast({"type": "cart_updated", "slot": sid, "cart": _carts.get(sid, [])})
+    return _carts.get(sid, [])
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
@@ -624,8 +707,49 @@ else:
 # ---------- entry ------------------------------------------------------------
 
 def main():
+    import argparse
     import uvicorn
-    uvicorn.run("planner.server.app:app", host="127.0.0.1", port=8765, reload=False)
+
+    parser = argparse.ArgumentParser(description="Travellers Rest Planner")
+    parser.add_argument("--share", action="store_true",
+                        help="Open to your network so multiplayer friends can view")
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--tunnel", action="store_true",
+                        help="Create a public tunnel via ngrok (requires ngrok installed)")
+    args = parser.parse_args()
+
+    host = "0.0.0.0" if args.share or args.tunnel else "127.0.0.1"
+
+    if args.share:
+        import socket
+        local_ip = socket.gethostbyname(socket.gethostname())
+        _allowed_origins.append(f"http://{local_ip}:{args.port}")
+        print(f"\n  Sharing on your local network!")
+        print(f"  Give this to your friends on the same WiFi/LAN:")
+        print(f"  http://{local_ip}:{args.port}/\n")
+
+    if args.tunnel:
+        import threading
+        def run_tunnel():
+            try:
+                from pyngrok import ngrok
+                print("\n  Setting up public tunnel (auto-installs ngrok if needed)...")
+                tunnel = ngrok.connect(args.port, "http")
+                # Add the tunnel URL to allowed CORS origins
+                _allowed_origins.append(tunnel.public_url)
+                _allowed_origins.append(tunnel.public_url.replace("https://", "http://"))
+                print(f"\n  ==========================================")
+                print(f"  Public share link — send to your friends:")
+                print(f"  {tunnel.public_url}")
+                print(f"  ==========================================\n")
+            except ImportError:
+                print("\n  pyngrok not installed. Run: pip install pyngrok")
+                print("  or use --share for LAN-only sharing\n")
+            except Exception as e:
+                print(f"\n  tunnel failed: {e}\n")
+        threading.Thread(target=run_tunnel, daemon=True).start()
+
+    uvicorn.run("planner.server.app:app", host=host, port=args.port, reload=False)
 
 
 if __name__ == "__main__":

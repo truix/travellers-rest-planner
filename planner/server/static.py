@@ -38,11 +38,11 @@ INDEX_HTML = r"""<!doctype html>
   --burgundy:      #983d3d;
   --burgundy-deep: #6e1f1f;
 
-  /* ink — warm dark brown text, never pure black */
-  --ink:           #3a2918;
-  --ink-soft:      #5b4530;
-  --ink-faded:     #816644;
-  --ink-ghost:     #ad9168;
+  /* ink — high contrast warm brown text */
+  --ink:           #1a1008;
+  --ink-soft:      #2e2010;
+  --ink-faded:     #5a4228;
+  --ink-ghost:     #8a7050;
 
   /* coin colours — golden hour */
   --gold:          #b07d18;
@@ -74,6 +74,7 @@ body {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.55;
+  font-weight: 500;
   font-feature-settings: "liga", "kern", "onum";
   min-height: 100vh;
   /* paper grain via SVG noise + warm vignette */
@@ -275,6 +276,7 @@ nav.tabs {
   z-index: 90;
   background: var(--parch-soft);
   border-bottom: 1px solid var(--rule);
+  overflow: visible;
 }
 nav.tabs .row {
   max-width: 1640px;
@@ -282,10 +284,8 @@ nav.tabs .row {
   padding: 0 24px;
   display: flex;
   gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
-nav.tabs .row::-webkit-scrollbar { display: none; }
 nav.tabs button {
   background: transparent;
   border: 0;
@@ -320,6 +320,73 @@ nav.tabs button.active::after {
   height: 2px;
   background: var(--burgundy);
 }
+
+/* Tab dropdowns */
+.tab-dropdown {
+  position: relative;
+}
+.tab-dropdown .tab-trigger {
+  background: transparent;
+  border: 0;
+  color: var(--ink-faded);
+  font-family: var(--font-display-sc);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  padding: 13px 16px 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  transition: color .2s;
+}
+.tab-dropdown .tab-trigger .glyph {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--ink-ghost);
+  transition: color .2s;
+}
+.tab-dropdown:hover .tab-trigger { color: var(--ink); }
+.tab-dropdown:hover .tab-trigger .glyph { color: var(--gold); }
+.tab-dropdown.has-active .tab-trigger { color: var(--burgundy-deep); }
+.tab-dropdown.has-active .tab-trigger .glyph { color: var(--gold); }
+.tab-dropdown.has-active .tab-trigger::after {
+  content: "";
+  position: absolute;
+  left: 14px; right: 14px; bottom: -1px;
+  height: 2px;
+  background: var(--burgundy);
+}
+.tab-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--parch-bright);
+  border: 1px solid var(--rule-deep);
+  box-shadow: 0 8px 24px -8px rgba(60, 35, 10, 0.4);
+  z-index: 80;
+  min-width: 180px;
+}
+.tab-dropdown.open .tab-menu { display: block; }
+.tab-menu button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--parch-deep);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 10px 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab-menu button:last-child { border-bottom: 0; }
+.tab-menu button:hover { background: var(--gold-glow); color: var(--burgundy-deep); }
+.tab-menu button.active { color: var(--burgundy-deep); font-weight: 600; }
 
 /* ============================================================
    MAIN
@@ -513,9 +580,10 @@ main {
 }
 .card .meta {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--ink-faded);
+  font-size: 12px;
+  color: var(--ink-soft);
   margin-top: 2px;
+  font-weight: 500;
 }
 .card .why {
   font-family: var(--font-body);
@@ -732,7 +800,7 @@ table.ledger {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 14px;
 }
 table.ledger thead th {
   background: var(--parch-deep);
@@ -760,6 +828,7 @@ table.ledger tbody td {
   padding: 8px 14px;
   border-bottom: 1px solid var(--parch-deep);
   vertical-align: middle;
+  font-weight: 500;
 }
 table.ledger tbody td.num {
   text-align: right;
@@ -1604,6 +1673,131 @@ canvas#mapCanvas {
   font-variant-numeric: tabular-nums;
 }
 
+/* ============================================================
+   ITEM MODAL — click any item name to see full dossier
+   ============================================================ */
+.cart-btn {
+  background: var(--moss-pale);
+  border: 1px solid var(--moss-deep);
+  color: var(--moss-deep);
+  font-size: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.cart-btn:hover { background: var(--moss); color: #fff; }
+
+.item-link {
+  color: var(--burgundy-deep);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.item-link:hover { color: var(--gold-deep); }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(58, 41, 24, 0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 20px;
+  overflow-y: auto;
+}
+.modal {
+  background: var(--parch-bright);
+  border: 2px solid var(--rule-deep);
+  max-width: 800px;
+  width: 100%;
+  padding: 0;
+  box-shadow: 0 16px 48px -16px rgba(60, 35, 10, 0.5);
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--ink-faded);
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--burgundy); }
+.modal-header {
+  background: var(--parch-deep);
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--rule-deep);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.modal-header .name {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--burgundy-deep);
+}
+.modal-header .prices {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faded);
+  margin-left: auto;
+}
+.modal-body { padding: 16px 20px; }
+.modal-section {
+  margin-bottom: 18px;
+}
+.modal-section h3 {
+  font-family: var(--font-display-sc);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--gold-deep);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 4px;
+  margin: 0 0 8px;
+}
+.modal-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--parch-deep);
+  font-size: 13px;
+}
+.modal-row:last-child { border-bottom: 0; }
+.modal-row .type-badge {
+  font-family: var(--font-display-sc);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border: 1px solid currentColor;
+  flex-shrink: 0;
+}
+.modal-row .type-badge.recipe { color: var(--burgundy); }
+.modal-row .type-badge.vendor { color: var(--moss-deep); }
+.modal-row .type-badge.crop { color: var(--gold-deep); }
+.modal-row .type-badge.fish { color: var(--sky-deep); }
+.modal-row .type-badge.foraging { color: var(--copper); }
+.modal-row .type-badge.group { color: var(--ink-faded); }
+.modal-row .type-badge.planting { color: var(--moss); }
+.modal-row .detail {
+  color: var(--ink-faded);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.modal-empty {
+  color: var(--ink-ghost);
+  font-style: italic;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
 footer.colophon {
   text-align: center;
   font-family: var(--font-display-sc);
@@ -1664,18 +1858,39 @@ footer.colophon .orn {
 <nav class="tabs">
   <div class="row">
     <button data-tab="plan" class="active"><span class="glyph">⚖</span>Plan</button>
-    <button data-tab="seeds"><span class="glyph">✿</span>Seeds</button>
-    <button data-tab="brewing"><span class="glyph">⚗</span>Brewing</button>
-    <button data-tab="brewPlan"><span class="glyph">⌗</span>Brew Plan</button>
-    <button data-tab="recipes"><span class="glyph">⚒</span>Recipes</button>
-    <button data-tab="vendors"><span class="glyph">⚔</span>Vendors</button>
-    <button data-tab="quests"><span class="glyph">✦</span>Quests</button>
-    <button data-tab="perks"><span class="glyph">★</span>Perks</button>
-    <button data-tab="fish"><span class="glyph">≈</span>Fish</button>
-    <button data-tab="foraging"><span class="glyph">❦</span>Foraging</button>
-    <button data-tab="reputation"><span class="glyph">♛</span>Reputation</button>
-    <button data-tab="map"><span class="glyph">⛰</span>Map</button>
-    <button data-tab="menu"><span class="glyph">📜</span>Menu Planner</button>
+    <div class="tab-dropdown">
+      <button class="tab-trigger"><span class="glyph">⚗</span>Brewing ▾</button>
+      <div class="tab-menu">
+        <button data-tab="brewing">Compendium</button>
+        <button data-tab="brewPlan">Brew Plan</button>
+      </div>
+    </div>
+    <div class="tab-dropdown">
+      <button class="tab-trigger"><span class="glyph">⚒</span>Crafting ▾</button>
+      <div class="tab-menu">
+        <button data-tab="recipes">Recipes</button>
+        <button data-tab="seeds">Seeds &amp; Crops</button>
+        <button data-tab="menu">Menu Planner</button>
+        <button data-tab="shopping">Shopping List</button>
+      </div>
+    </div>
+    <div class="tab-dropdown">
+      <button class="tab-trigger"><span class="glyph">⚔</span>World ▾</button>
+      <div class="tab-menu">
+        <button data-tab="vendors">Vendors</button>
+        <button data-tab="fish">Fish</button>
+        <button data-tab="foraging">Foraging</button>
+        <button data-tab="map">Map</button>
+      </div>
+    </div>
+    <div class="tab-dropdown">
+      <button class="tab-trigger"><span class="glyph">★</span>Progress ▾</button>
+      <div class="tab-menu">
+        <button data-tab="quests">Quests</button>
+        <button data-tab="perks">Perks</button>
+        <button data-tab="reputation">Reputation</button>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -1702,13 +1917,14 @@ const STATE = {
     seeds:    { sort: null, dir: -1, filter: "" },
     recipes:  { sort: null, dir: -1, filter: "", group: null, expanded: new Set() },
     brewing:  { showLocked: false },
-    vendors:  { filter: "" },
+    vendors:  { filter: "", stock: "all" },
     quests:   { filter: "", state: "all" },
     perks:    { mode: "player" },
     fish:     { filter: "" },
     foraging: { filter: "" },
     map:      { layer: "all", scene: "all" },
     menu:     { picked: new Set(), filter: "" },
+    shopping: { filter: "" },  // cart is now server-side, synced via /api/cart
   },
 };
 
@@ -1744,6 +1960,138 @@ function fmtHours(h) {
   if (h < 24) return Number.isInteger(h) ? h + "h" : h.toFixed(1) + "h";
   const d = Math.floor(h / 24), rem = Math.round(h % 24);
   return rem ? `${d}d ${rem}h` : `${d}d`;
+}
+
+/* ----- crop_id → harvest_item_id lookup (for icons) ----- */
+function _cropItemId(cropId) {
+  const seeds = STATE.data.seeds || [];
+  const match = seeds.find(s => s.crop_id === cropId);
+  return match ? (match.harvest_item_id || match.seed_item_id || cropId) : cropId;
+}
+
+/* ----- shared shopping cart (server-synced) ----- */
+let CART = [];
+
+async function loadCart() {
+  CART = await jget("/api/cart?slot=" + encodeURIComponent(STATE.slot));
+}
+
+async function addToCart(itemId, name, buyCost, vendor, qty) {
+  await fetch("/api/cart", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      slot: STATE.slot, action: "add",
+      item: { item_id: itemId, name: name, qty: qty || 1, buy_copper: buyCost, vendor: vendor }
+    }),
+  });
+  // Cart will update via websocket broadcast
+}
+
+async function removeFromCart(itemId) {
+  await fetch("/api/cart", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ slot: STATE.slot, action: "remove", item_id: itemId }),
+  });
+}
+
+async function clearCart() {
+  await fetch("/api/cart", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ slot: STATE.slot, action: "clear" }),
+  });
+}
+
+function cartButton(itemId, name, buyCost, vendor) {
+  return `<button class="cart-btn" onclick="event.stopPropagation(); addToCart(${itemId}, '${esc(name).replace(/'/g,"\\'")}', ${buyCost}, '${esc(vendor||"").replace(/'/g,"\\'")}', 1)" title="Add to shopping list">🛒</button>`;
+}
+
+/* ----- item link helper — makes any item name clickable ----- */
+function itemLink(itemId, name, showIcon) {
+  if (!itemId || !name) return esc(name || "?");
+  const icon = showIcon !== false ? iconHtml(itemId) : "";
+  return `${icon}<span class="item-link" onclick="openItem(${itemId})">${esc(name)}</span>`;
+}
+
+async function openItem(itemId) {
+  const lang = STATE.lang || "English";
+  try {
+    const d = await jget("/api/item/" + itemId + "?lang=" + encodeURIComponent(lang));
+    showItemModal(d);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function showItemModal(d) {
+  const sourcesHtml = d.sources.length === 0
+    ? '<div class="modal-empty">No known sources in extracted data. May drop from mine or world objects.</div>'
+    : d.sources.map(s => {
+        let detail = "";
+        if (s.type === "recipe") {
+          const ings = s.ingredients.map(i => `${i.amount}x ${itemLink(i.item_id, i.name, false)}`).join(" + ");
+          detail = `<div class="detail">${s.output_qty}x · ${fmtHours(s.time_hours)} · ${ings}</div>`;
+        } else if (s.type === "crop") {
+          detail = `<div class="detail">${s.days_to_grow}d grow · ${s.available_seasons.join(",")} · best ${s.best_seasons.join(",") || "none"} · yield ${s.yield_normal}-${s.yield_best} · seed: ${s.seed ? itemLink(s.seed_id, s.seed, false) : "?"}</div>`;
+        } else if (s.type === "vendor") {
+          detail = `<div class="detail">buy ${fmtMoney(s.buy_copper)}${s.always_stocked ? " · always in stock" : ""}</div>`;
+        } else if (s.type === "foraging") {
+          detail = `<div class="detail">${s.amount_min}-${s.amount_max} per pick</div>`;
+        } else if (s.type === "fish") {
+          const seasons = ["Spring","Summer","Autumn","Winter"].filter((_,i) => s.season_flags & (1<<i));
+          const water = {0:"Any",1:"Fresh",2:"Salt"}[s.water_type] || "?";
+          detail = `<div class="detail">diff ${s.difficulty} · ${water} water · ${seasons.join(",")}</div>`;
+        }
+        return `<div class="modal-row"><span class="type-badge ${s.type}">${s.type}</span><div><div>${esc(s.name || s.vendor || "")}</div>${detail}</div></div>`;
+      }).join("");
+
+  const usesHtml = d.uses.length === 0
+    ? '<div class="modal-empty">Not used in any known recipe.</div>'
+    : d.uses.map(u => {
+        let label = "";
+        let detail = "";
+        if (u.type === "recipe_ingredient") {
+          label = itemLink(u.output_item_id, u.name, false);
+          detail = `<div class="detail">${u.amount_needed}x needed · ${u.group}</div>`;
+        } else if (u.type === "planting") {
+          label = itemLink(u.harvest_id, u.crop_name, false);
+          detail = `<div class="detail">harvests ${u.harvest_name || "?"}</div>`;
+        } else if (u.type === "ingredient_group") {
+          label = esc(u.group_name);
+          detail = `<div class="detail">accepted in this ingredient group</div>`;
+        }
+        return `<div class="modal-row"><span class="type-badge ${u.type === "recipe_ingredient" ? "recipe" : u.type === "planting" ? "crop" : "group"}">${u.type.replace("recipe_ingredient","recipe").replace("ingredient_group","group")}</span><div><div>${label}</div>${detail}</div></div>`;
+      }).join("");
+
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+      <div class="modal-header">
+        ${iconHtml(d.item_id, "lg")}
+        <div class="name">${esc(d.name)}</div>
+        <div class="prices">
+          buy ${fmtMoney(d.buy_copper)} · sell ${fmtMoney(d.sell_copper)}
+          ${d.has_to_be_aged_meal ? ' · <span class="badge gold">agable</span>' : ""}
+          ${d.contains_alcohol ? ' · <span class="badge ember">alcohol</span>' : ""}
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h3>Sources — how to get it (${d.source_count})</h3>
+          ${sourcesHtml}
+        </div>
+        <div class="modal-section">
+          <h3>Uses — what it's for (${d.use_count})</h3>
+          ${usesHtml}
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 /* ----- icon helper ----- */
@@ -1828,7 +2176,7 @@ function trendBadge(t) {
 function renderTrendList(items) {
   if (!items?.length) return '<div class="empty">—</div>';
   return items.map(t =>
-    `<div class="item"><span class="name">${iconHtml(t.item_id)}${esc(t.name)}</span>${trendBadge(t)}</div>`
+    `<div class="item"><span class="name">${itemLink(t.item_id, t.name)}</span>${trendBadge(t)}</div>`
   ).join("");
 }
 function renderWeek(w) {
@@ -1847,11 +2195,11 @@ function renderCookCard(s) {
   return `
     <div class="card">
       <div class="head">
-        <div class="title">${iconHtml(s.output_item_id, 'lg')}${esc(s.recipe_name)}</div>
+        <div class="title">${itemLink(s.output_item_id, s.recipe_name)}</div>
         <div>${fmtMoney(s.base_profit_with_trend)}</div>
       </div>
       <div class="meta">${fmtHours(s.time_hours)} cook · fuel ${s.fuel} · trend bonus ${fmtMoney(trendBonus)}</div>
-      <div class="meta">${s.ingredients.map(([id,a,n]) => `${a}× ${esc(n)}`).join("  +  ")}</div>
+      <div class="meta">${s.ingredients.map(([id,a,n]) => `${a}× ${itemLink(id, n, false)}`).join("  +  ")}</div>
       ${s.why?.length ? `<div class="why">${esc(s.why.join(" · "))}</div>` : ""}
     </div>`;
 }
@@ -1859,14 +2207,35 @@ function renderPlantCard(s) {
   const deadline = s.plant_by_day === 0
     ? '<span class="badge gold glow">plant TODAY</span>'
     : `<span class="badge gold">plant in ≤${s.plant_by_day}d</span>`;
+  // Find the seed's vendor info for the cart button
+  const vendors = STATE.data.vendors || [];
+  let seedVendor = null;
+  let seedBuy = 0;
+  let seedName = s.crop_name + " Seeds";
+  // Search vendors for this crop's seed
+  for (const v of vendors) {
+    for (const item of v.items) {
+      if (item.name && item.name.toLowerCase().includes(s.crop_name.toLowerCase()) &&
+          (item.name.toLowerCase().includes("seed") || item.name.toLowerCase().includes("sprout"))) {
+        seedVendor = v.vendor;
+        seedBuy = item.buy_copper;
+        seedName = item.name;
+        break;
+      }
+    }
+    if (seedVendor) break;
+  }
+  const cartBtn = seedVendor
+    ? cartButton(0, seedName, seedBuy, seedVendor)
+    : '';
   return `
     <div class="card">
       <div class="head">
-        <div class="title">${esc(s.crop_name)} ${s.is_best_now ? '<span class="badge gold">BEST</span>' : ''}</div>
+        <div class="title">${iconHtml(_cropItemId(s.crop_id), 'lg')}${esc(s.crop_name)} ${s.is_best_now ? '<span class="badge gold">BEST</span>' : ''} ${cartBtn}</div>
         ${deadline}
       </div>
       <div class="meta">${s.days_to_grow}d to grow${s.reusable ? ' · perennial (regrow ' + s.days_until_new_harvest + 'd)' : ''} · ${s.yield_per_harvest}/harvest · target wk +${s.target_for_trend_week}</div>
-      <div class="meta">seasons: ${s.available_seasons.join(", ")} (best: ${s.best_seasons.join(", ") || "none"})</div>
+      <div class="meta">${seasonChips(s.available_seasons, s.best_seasons)}</div>
       <div class="why">${esc(s.why.join(" · "))}</div>
     </div>`;
 }
@@ -1951,7 +2320,7 @@ function renderSeedsBody() {
       if (col.t === "bool")   return `<td>${v ? "✓" : ""}</td>`;
       if (col.t === "arr")    return `<td>${(v || []).map(x => esc(x)).join(", ")}</td>`;
       if (col.t === "season") return `<td>${seasonChips(v, r.best_seasons)}</td>`;
-      if (col.k === "name")   return `<td><div class="item-name">${iconHtml(r.harvest_item_id || r.crop_id)}${esc(v)}</div><div class="meta-line">${esc(r.harvest_name)}</div></td>`;
+      if (col.k === "name")   return `<td><div class="item-name">${itemLink(r.harvest_item_id, v)}</div><div class="meta-line">${r.seed_item_id ? itemLink(r.seed_item_id, r.seed_name || "seed", false) : esc(r.harvest_name)}</div></td>`;
       return `<td>${esc(v)}</td>`;
     }).join("");
     return `<tr class="${cls}">${cells}</tr>`;
@@ -1998,7 +2367,7 @@ function renderSlot(slot) {
   const choiceIcon = slot.choices?.[0]?.item_id ? iconHtml(slot.choices[0].item_id) : "";
   return `
     <div class="slot">
-      <div class="label"><span class="amt">${slot.amount}×</span>${choiceIcon}${esc(slot.label)}${groupBadge}${opts}</div>
+      <div class="label"><span class="amt">${slot.amount}×</span>${slot.choices?.[0]?.item_id ? itemLink(slot.choices[0].item_id, slot.label, true) : esc(slot.label)}${groupBadge}${opts}</div>
       <div class="cost">${fmtMoney(slot.cheapest_cost)}${sell}</div>
     </div>${sub}`;
 }
@@ -2071,7 +2440,7 @@ function renderBrewCard(p, trendingIds, daysToRotation) {
   return `
     <div class="brew-card ${p.is_unlocked ? '' : 'locked'}">
       <div class="head">
-        <div class="name">${iconHtml(p.drink_item_id, 'lg')}${esc(p.drink_name)} ${lockBadge} ${trendBadge}</div>
+        <div class="name">${itemLink(p.drink_item_id, p.drink_name)} ${lockBadge} ${trendBadge}</div>
         <div class="summary">
           <span class="key">total</span> ${fmtHours(p.total_brewing_hours)} ·
           <span class="key">cost</span> ${fmtMoneyMuted(p.chain.cumulative_cost_copper)} ·
@@ -2142,7 +2511,7 @@ function renderRecipeBody() {
     const cls = r.is_unlocked ? "" : "dim";
     let mainRow = `
       <tr class="expandable ${cls}" data-rid="${r.recipe_id}">
-        <td><div class="item-name">${iconHtml(r.output_item_id)}${esc(r.name)}${lockBadge}${ageBadge}</div></td>
+        <td><div class="item-name">${itemLink(r.output_item_id, r.name)}${lockBadge}${ageBadge}</div></td>
         <td>${esc(r.group)}</td>
         <td class="num">${r.output_qty}</td>
         <td class="num">${fmtMoneyMuted(r.per_unit_sell)}</td>
@@ -2229,20 +2598,35 @@ function renderVendors() {
   const data = STATE.data.vendors || [];
   const u = STATE.ui.vendors;
   const f = u.filter.trim().toLowerCase();
+  const stockFilter = u.stock;
   const matches = (v) => {
-    if (!f) return v.items;
-    const vendorMatch = v.vendor.toLowerCase().includes(f);
-    return v.items.filter(i => vendorMatch || i.name.toLowerCase().includes(f));
+    let list = v.items;
+    if (f) {
+      const vendorMatch = v.vendor.toLowerCase().includes(f);
+      list = list.filter(i => vendorMatch || i.name.toLowerCase().includes(f));
+    }
+    if (stockFilter === "instock") list = list.filter(i => i.in_stock > 0);
+    else if (stockFilter === "always") list = list.filter(i => i.always);
+    else if (stockFilter === "today") list = list.filter(i => i.daily_special);
+    return list;
   };
   const visible = data.filter(v => matches(v).length > 0);
   const cards = visible.map(v => {
     const items = matches(v).slice().sort((a,b) => a.buy_copper - b.buy_copper);
-    const rows = items.map(i => `
-      <tr>
-        <td class="nm ${i.always ? 'always' : ''}">${iconHtml(i.item_id)}${esc(i.name)}</td>
+    const rows = items.map(i => {
+      let stockBadge = "";
+      if (i.in_stock !== null && i.in_stock !== undefined) {
+        if (i.in_stock === 0) stockBadge = '<span class="badge wax">sold out</span>';
+        else stockBadge = `<span class="badge moss">${i.in_stock} in stock</span>`;
+      }
+      if (i.daily_special) stockBadge += ' <span class="badge gold">today only</span>';
+      return `
+      <tr${i.in_stock === 0 ? ' style="opacity:0.4"' : ''}>
+        <td class="nm ${i.always ? 'always' : ''}">${itemLink(i.item_id, i.name)} ${stockBadge}</td>
         <td class="num">${fmtMoney(i.buy_copper)}</td>
         <td class="num" style="color:var(--copper)">${fmtMoney(i.sell_copper)}</td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
     const locPill = v.locations?.length
       ? `<span class="v-loc">${esc(v.locations.map(l => l.scene).join(", "))}</span>`
       : '<span class="v-loc unknown">location unknown</span>';
@@ -2262,7 +2646,13 @@ function renderVendors() {
     <h2 class="section-head"><span class="ornament">⚔</span> Merchants &amp; their wares</h2>
     <div class="filter-bar">
       <div class="field"><input id="vendorFilter" type="text" placeholder="Filter by vendor or item…" value="${esc(u.filter)}"></div>
-      <span class="count">${visible.length} merchants · ★ = always in stock</span>
+      <div class="pill-group">
+        <button data-vstock="all" class="${u.stock==='all'?'on':''}">All</button>
+        <button data-vstock="instock" class="${u.stock==='instock'?'on':''}">In Stock Now</button>
+        <button data-vstock="always" class="${u.stock==='always'?'on':''}">Always</button>
+        <button data-vstock="today" class="${u.stock==='today'?'on':''}">Today Only</button>
+      </div>
+      <span class="count">${visible.length} merchants · ★ = always · green = in stock today</span>
     </div>
     <div class="vendor-grid">${cards || '<div class="empty">no matches</div>'}</div>`;
 }
@@ -2356,7 +2746,7 @@ function renderFishOrBush(items, title, ornament, filterKey, placeholder, getMet
   const visible = !f ? items : items.filter(x => x.name.toLowerCase().includes(f));
   const tiles = visible.map(x => `
     <div class="entry">
-      <span class="nm">${iconHtml(x.fish_id ?? x.bush_id)}${esc(x.name)}</span>
+      <span class="nm">${itemLink(x.fish_id ?? x.bush_id, x.name)}</span>
       <span class="meta">${getMeta ? getMeta(x) : ""}</span>
     </div>`).join("");
   return `
@@ -2395,7 +2785,7 @@ function renderReputation() {
    ============================================================ */
 function renderBrewPlanWeek(w) {
   const ingChips = w.trending_ingredients.slice(0, 8).map(ing =>
-    `<span class="ing-chip">${iconHtml(ing.item_id)}<span>${esc(ing.name)}</span></span>`).join("");
+    `<span class="ing-chip">${itemLink(ing.item_id, ing.name)}</span>`).join("");
   const picks = w.picks.slice(0, 8).map(p => {
     const lockBadge = p.is_unlocked ? "" : '<span class="badge wax">locked</span>';
     const wineBadge = p.is_wine ? '<span class="badge ember">wine</span>' : '';
@@ -2404,12 +2794,12 @@ function renderBrewPlanWeek(w) {
       : `<span class="badge gold">start by day ${p.start_brewing_by_day}</span>`;
     const combo = p.best_combo.map(c => {
       const cls = c.is_trending ? 'class="combo trend"' : 'class="combo"';
-      return `<span ${cls}>${iconHtml(c.item_id)}${c.slot_amount}× ${esc(c.item_name)}${c.mod_name ? ` (${esc(c.mod_name)})` : ""}</span>`;
+      return `<span ${cls}>${c.slot_amount}× ${itemLink(c.item_id, c.item_name)}${c.mod_name ? ` (${esc(c.mod_name)})` : ""}</span>`;
     }).join("");
     return `
       <div class="bp-pick ${p.is_unlocked ? '' : 'locked'}">
         <div class="bp-head">
-          <div class="bp-name">${iconHtml(p.drink_item_id, 'lg')}${esc(p.drink_name)} ${lockBadge} ${wineBadge}</div>
+          <div class="bp-name">${itemLink(p.drink_item_id, p.drink_name)} ${lockBadge} ${wineBadge}</div>
           <div class="bp-deadline">${startBy}</div>
         </div>
         <div class="bp-stats">
@@ -2479,7 +2869,7 @@ function renderMenuPlanner() {
     return `
       <tr class="menu-row ${on ? 'on' : ''} ${isTrending ? 'trending' : ''}" data-rid="${r.recipe_id}">
         <td><input type="checkbox" ${on ? 'checked' : ''} data-pick="${r.recipe_id}"></td>
-        <td>${iconHtml(r.output_item_id)} ${esc(r.name)} ${isTrending ? '<span class="badge gold glow">trending</span>' : ''}</td>
+        <td>${itemLink(r.output_item_id, r.name)} ${isTrending ? '<span class="badge gold glow">trending</span>' : ''}</td>
         <td>${esc(r.group)}</td>
         <td class="num">${fmtMoneyMuted(r.batch_sell)}</td>
         <td class="num">${fmtMoneyMuted(r.profit_per_craft)}</td>
@@ -2524,6 +2914,123 @@ function renderMenuPlanner() {
         <tbody id="menuPickBody">${allRows}</tbody>
       </table>
     </div>`;
+}
+
+/* ============================================================
+   SHOPPING LIST TAB
+   ============================================================ */
+function renderShopping() {
+  const u = STATE.ui.shopping;
+  const list = CART;
+
+  // Group by vendor
+  const byVendor = {};
+  let totalCost = 0;
+  for (const item of list) {
+    const v = item.vendor || "Unknown";
+    (byVendor[v] = byVendor[v] || []).push(item);
+    totalCost += (item.buy_copper || 0) * item.qty;
+  }
+
+  const listHtml = list.length === 0
+    ? '<div class="empty">Your shopping list is empty. Search for items below and add them.</div>'
+    : Object.entries(byVendor).map(([vendor, items]) => {
+        const vendorTotal = items.reduce((s, i) => s + (i.buy_copper || 0) * i.qty, 0);
+        const rows = items.map(i => `
+          <div class="slot">
+            <div class="label">
+              <span class="amt">${i.qty}×</span>${itemLink(i.item_id, i.name)}
+            </div>
+            <div class="cost">
+              ${fmtMoney(i.buy_copper * i.qty)}
+              <span style="cursor:pointer;color:var(--burgundy);margin-left:8px" onclick="removeShoppingItem(${i.item_id})">✕</span>
+            </div>
+          </div>`).join("");
+        return `
+          <div class="card" style="margin-bottom:10px">
+            <div class="head">
+              <div class="title" style="font-size:18px">${esc(vendor)}</div>
+              <div>${fmtMoney(vendorTotal)}</div>
+            </div>
+            ${rows}
+          </div>`;
+      }).join("");
+
+  // Search results for adding items
+  const f = u.filter.trim().toLowerCase();
+  let searchResults = "";
+  if (f && f.length >= 2) {
+    // Search vendors for matching items
+    const vendors = STATE.data.vendors || [];
+    const matches = [];
+    for (const v of vendors) {
+      for (const i of v.items) {
+        if (i.name.toLowerCase().includes(f) && i.buy_copper > 0) {
+          matches.push({ ...i, vendor: v.vendor });
+        }
+      }
+    }
+    // Dedupe by item_id, keep cheapest
+    const seen = {};
+    for (const m of matches) {
+      if (!seen[m.item_id] || m.buy_copper < seen[m.item_id].buy_copper) {
+        seen[m.item_id] = m;
+      }
+    }
+    const unique = Object.values(seen).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 20);
+    if (unique.length) {
+      searchResults = unique.map(m => `
+        <div class="slot" style="cursor:pointer" onclick="addShoppingItem(${m.item_id}, '${esc(m.name).replace(/'/g,"\\'")}', ${m.buy_copper}, '${esc(m.vendor).replace(/'/g,"\\'")}')">
+          <div class="label">${itemLink(m.item_id, m.name)} <span style="color:var(--ink-ghost);font-size:11px">from ${esc(m.vendor)}</span></div>
+          <div class="cost">${fmtMoney(m.buy_copper)} each</div>
+        </div>`).join("");
+    } else {
+      searchResults = '<div class="empty">no vendor sells that</div>';
+    }
+  }
+
+  return `
+    <h2 class="section-head"><span class="ornament">🛒</span> Shopping checklist</h2>
+
+    <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px">
+      <div class="stat-tile"><div class="label">Items</div><div class="value">${list.length}</div></div>
+      <div class="stat-tile"><div class="label">Total units</div><div class="value">${list.reduce((s,i)=>s+i.qty,0)}</div></div>
+      <div class="stat-tile"><div class="label">Total cost</div><div class="value money">${fmtMoney(totalCost)}</div></div>
+    </div>
+
+    ${listHtml}
+
+    ${list.length > 0 ? '<button class="btn" style="background:var(--burgundy);color:#fff;border:0;padding:8px 16px;cursor:pointer;font-family:inherit;margin:8px 0" onclick="clearShopping()">Clear list</button>' : ''}
+
+    <h2 class="section-head"><span class="ornament">+</span> Add items</h2>
+    <div class="filter-bar">
+      <div class="field"><input id="shopSearchFilter" type="text" placeholder="Search for an item to add…" value="${esc(u.filter)}"></div>
+    </div>
+    ${searchResults ? '<div class="card">' + searchResults + '</div>' : ''}
+    <p class="note">Search by item name. Click to add 1 to your list. Click again to add more. Items show the cheapest vendor price.</p>`;
+}
+
+async function addShoppingItem(itemId, name, buyCost, vendor) {
+  await addToCart(itemId, name, buyCost, vendor, 1);
+  // Cart updates via websocket, but also update locally for instant feedback
+  const existing = CART.find(i => i.item_id === itemId);
+  if (existing) existing.qty = (existing.qty || 0) + 1;
+  else CART.push({ item_id: itemId, name: name, qty: 1, buy_copper: buyCost, vendor: vendor });
+  if (STATE.tab === "shopping") renderTab();
+  const f = $("#shopSearchFilter");
+  if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+}
+
+async function removeShoppingItem(itemId) {
+  await removeFromCart(itemId);
+  CART = CART.filter(i => i.item_id !== itemId);
+  if (STATE.tab === "shopping") renderTab();
+}
+
+async function clearShopping() {
+  await clearCart();
+  CART = [];
+  if (STATE.tab === "shopping") renderTab();
 }
 
 /* ============================================================
@@ -2764,11 +3271,18 @@ const TABS = {
   reputation: renderReputation,
   map: renderMap,
   menu: renderMenuPlanner,
+  shopping: renderShopping,
 };
 
 function setTab(name) {
   STATE.tab = name;
-  $$("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  // Clear all active states
+  $$("nav.tabs button[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  // Mark parent dropdown as active if the selected tab is inside one
+  $$("nav.tabs .tab-dropdown").forEach(dd => {
+    const hasActive = !!dd.querySelector(`button[data-tab="${name}"]`);
+    dd.classList.toggle("has-active", hasActive);
+  });
   renderTab();
 }
 function renderTab() {
@@ -2842,6 +3356,10 @@ function bindTab() {
         if (ff) { ff.focus(); ff.setSelectionRange(ff.value.length, ff.value.length); }
       }
     });
+    $$("[data-vstock]").forEach(b => b.addEventListener("click", () => {
+      STATE.ui.vendors.stock = b.dataset.vstock;
+      renderTab();
+    }));
   }
 
   if (STATE.tab === "quests") {
@@ -2902,6 +3420,18 @@ function bindTab() {
       else            STATE.ui.menu.picked.delete(rid);
       renderTab();
     }));
+  }
+
+  if (STATE.tab === "shopping") {
+    const f = $("#shopSearchFilter");
+    if (f) {
+      f.addEventListener("input", () => {
+        STATE.ui.shopping.filter = f.value;
+        renderTab();
+        const ff = $("#shopSearchFilter");
+        if (ff) { ff.focus(); ff.setSelectionRange(ff.value.length, ff.value.length); }
+      });
+    }
   }
 
   if (STATE.tab === "map") {
@@ -3020,6 +3550,10 @@ function connectWS() {
       try {
         const m = JSON.parse(ev.data);
         if (m.type === "save_changed") setTimeout(loadAll, 500);
+        if (m.type === "cart_updated" && m.slot === STATE.slot) {
+          CART = m.cart || [];
+          if (STATE.tab === "shopping") renderTab();
+        }
       } catch (_) {}
     };
   };
@@ -3040,11 +3574,40 @@ async function boot() {
     `<option value="${esc(l.name)}">${esc(l.name)}</option>`).join("") || '<option>English</option>';
   $("#lang").value = STATE.lang;
 
-  $("#slot").onchange = () => { STATE.slot = $("#slot").value; loadAll(); };
+  $("#slot").onchange = () => { STATE.slot = $("#slot").value; loadAll(); loadCart(); };
   $("#lang").onchange = () => { STATE.lang = $("#lang").value; loadAll(); };
 
-  $$("nav.tabs button").forEach(b =>
-    b.addEventListener("click", () => setTab(b.dataset.tab)));
+  // Top-level tab buttons (Plan)
+  $$("nav.tabs > .row > button[data-tab]").forEach(b =>
+    b.addEventListener("click", () => {
+      $$(".tab-dropdown").forEach(dd => dd.classList.remove("open"));
+      setTab(b.dataset.tab);
+    }));
+
+  // Dropdown triggers — toggle open/close
+  $$(".tab-trigger").forEach(trigger => {
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const dd = trigger.closest(".tab-dropdown");
+      const wasOpen = dd.classList.contains("open");
+      $$(".tab-dropdown").forEach(d => d.classList.remove("open"));
+      if (!wasOpen) dd.classList.add("open");
+    });
+  });
+
+  // Dropdown menu items — select tab and close dropdown
+  $$(".tab-menu button[data-tab]").forEach(b => {
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      $$(".tab-dropdown").forEach(dd => dd.classList.remove("open"));
+      setTab(b.dataset.tab);
+    });
+  });
+
+  // Close dropdowns when clicking elsewhere
+  document.addEventListener("click", () => {
+    $$(".tab-dropdown").forEach(dd => dd.classList.remove("open"));
+  });
 
   // Global search
   const gs = $("#globalSearch");
@@ -3060,6 +3623,7 @@ async function boot() {
   });
 
   await loadAll();
+  await loadCart();
   connectWS();
 }
 boot();

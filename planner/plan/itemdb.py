@@ -9,10 +9,86 @@ from planner.catalog import Catalog
 from planner.i18n import Translator
 
 
+def _find_uses(item_id: int, cat: Catalog, tr: Translator) -> list[dict]:
+    uses = []
+    for r in cat.recipes_by_id.values():
+        if not r.active:
+            continue
+        for iid, amt in r.ingredients:
+            if iid == item_id:
+                out = cat.items_by_id.get(r.output_item_id)
+                out_name_id = out.name_id if out else None
+                uses.append({
+                    "type": "recipe_ingredient",
+                    "recipe_id": r.recipe_id,
+                    "name": tr.recipe(r.output_item_id, fallback=r.name,
+                                      output_name_id=out_name_id),
+                    "output_item_id": r.output_item_id,
+                    "amount_needed": amt,
+                    "group": ["Material","Food","Drink","Other"][r.group] if r.group < 4 else str(r.group),
+                })
+                break
+    for c in cat.crops_by_id.values():
+        if c.seed_item_id == item_id:
+            uses.append({
+                "type": "planting",
+                "crop_id": c.crop_id,
+                "crop_name": tr.crop(c.name_id, c.harvest_item_id, c.name),
+                "harvest_id": c.harvest_item_id,
+                "harvest_name": tr.item(c.harvest_item_id, None, c.name) if c.harvest_item_id else None,
+            })
+    for gid, grp in cat.groups_by_path_id.items():
+        for ipid, mpid in grp.possible_items:
+            it = cat.items_by_path_id.get(ipid)
+            if it and it.item_id == item_id:
+                glabel = tr.get(f"Items/item_name_{grp.group_id}")
+                if not glabel:
+                    glabel = grp.name.split(" - ", 1)[1] if " - " in grp.name else grp.name
+                uses.append({
+                    "type": "ingredient_group",
+                    "group_name": glabel,
+                    "group_id": grp.group_id,
+                })
+                break
+    return uses
+
+
 def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
     """Build a complete dossier on a single item."""
     item = cat.items_by_id.get(item_id)
     if not item:
+        # Fish and some other items aren't in items_by_id but exist in the fish catalog
+        for f in cat.fishes:
+            if f.fish_id == item_id:
+                d = f.raw
+                sp = d.get("sellPrice") or {}
+                sell = sp.get("gold",0)*10000 + sp.get("silver",0)*100 + sp.get("copper",0)
+                bp = d.get("price") or {}
+                buy = bp.get("gold",0)*10000 + bp.get("silver",0)*100 + bp.get("copper",0)
+                name = tr.item(item_id, f.name_id, f.name)
+                seasons = ["Spring","Summer","Autumn","Winter"]
+                sf = d.get("season", 15)
+                return {
+                    "item_id": item_id,
+                    "name": name,
+                    "buy_copper": buy,
+                    "sell_copper": sell,
+                    "is_food": True,
+                    "food_type": d.get("foodType"),
+                    "contains_alcohol": False,
+                    "has_to_be_aged_meal": False,
+                    "sources": [{
+                        "type": "fish",
+                        "name": name,
+                        "difficulty": d.get("difficulty", 0),
+                        "fishing_method": d.get("fishingMethod", 0),
+                        "water_type": d.get("waterType", 0),
+                        "season_flags": sf,
+                    }],
+                    "uses": (u := _find_uses(item_id, cat, tr)),
+                    "source_count": 1,
+                    "use_count": len(u),
+                }
         return None
 
     name = tr.item(item.item_id, item.name_id, item.name)
@@ -107,52 +183,7 @@ def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
             })
 
     # === USES: what is this item used for? ===
-    uses = []
-
-    # 1. Recipes that USE this item as an ingredient
-    for r in cat.recipes_by_id.values():
-        if not r.active:
-            continue
-        for iid, amt in r.ingredients:
-            if iid == item_id:
-                out = cat.items_by_id.get(r.output_item_id)
-                out_name_id = out.name_id if out else None
-                uses.append({
-                    "type": "recipe_ingredient",
-                    "recipe_id": r.recipe_id,
-                    "name": tr.recipe(r.output_item_id, fallback=r.name,
-                                      output_name_id=out_name_id),
-                    "output_item_id": r.output_item_id,
-                    "amount_needed": amt,
-                    "group": ["Material","Food","Drink","Other"][r.group] if r.group < 4 else str(r.group),
-                })
-                break
-
-    # 2. Is it a seed for a crop?
-    for c in cat.crops_by_id.values():
-        if c.seed_item_id == item_id:
-            uses.append({
-                "type": "planting",
-                "crop_id": c.crop_id,
-                "crop_name": tr.crop(c.name_id, c.harvest_item_id, c.name),
-                "harvest_id": c.harvest_item_id,
-                "harvest_name": tr.item(c.harvest_item_id, None, c.name) if c.harvest_item_id else None,
-            })
-
-    # 3. Is it accepted by an IngredientGroup?
-    for gid, grp in cat.groups_by_path_id.items():
-        for ipid, mpid in grp.possible_items:
-            it = cat.items_by_path_id.get(ipid)
-            if it and it.item_id == item_id:
-                glabel = tr.get(f"Items/item_name_{grp.group_id}")
-                if not glabel:
-                    glabel = grp.name.split(" - ", 1)[1] if " - " in grp.name else grp.name
-                uses.append({
-                    "type": "ingredient_group",
-                    "group_name": glabel,
-                    "group_id": grp.group_id,
-                })
-                break
+    uses = _find_uses(item_id, cat, tr)
 
     return {
         "item_id": item_id,
