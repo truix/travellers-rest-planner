@@ -14,6 +14,7 @@ INDEX_HTML = r"""<!doctype html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 /* ============================================================
    THE DAYLIGHT LEDGER — DESIGN TOKENS  (bright & cheery)
@@ -72,7 +73,7 @@ body {
   background: var(--parch);
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1.55;
   font-weight: 500;
   font-feature-settings: "liga", "kern", "onum";
@@ -580,7 +581,7 @@ main {
 }
 .card .meta {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink-soft);
   margin-top: 2px;
   font-weight: 500;
@@ -599,15 +600,16 @@ main {
    BADGES
    ============================================================ */
 .badge {
-  font-family: var(--font-display-sc);
-  font-size: 9px;
-  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border: 1px solid currentColor;
   white-space: nowrap;
   display: inline-block;
   vertical-align: middle;
+  font-weight: 600;
 }
 .badge.gold  { color: var(--gold-deep); background: rgba(208,144,28,0.12); }
 .badge.gold.glow { box-shadow: 0 0 14px var(--gold-glow); animation: glow 2.4s ease-in-out infinite; }
@@ -800,7 +802,7 @@ table.ledger {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 16px;
 }
 table.ledger thead th {
   background: var(--parch-deep);
@@ -1798,6 +1800,38 @@ canvas#mapCanvas {
   padding: 4px 0;
 }
 
+/* Floating cart widget */
+.cart-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--parch-bright);
+  border: 2px solid var(--rule-deep);
+  box-shadow: 0 8px 24px -8px rgba(60, 35, 10, 0.5);
+  padding: 10px 16px;
+  cursor: pointer;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform .15s;
+}
+.cart-widget:hover { transform: scale(1.05); }
+.cart-widget .cart-icon { font-size: 18px; color: var(--moss-deep); }
+.cart-widget .cart-count {
+  background: var(--burgundy);
+  color: #fff;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.cart-widget .cart-total { color: var(--ink); }
+
 footer.colophon {
   text-align: center;
   font-family: var(--font-display-sc);
@@ -1857,38 +1891,38 @@ footer.colophon .orn {
 
 <nav class="tabs">
   <div class="row">
-    <button data-tab="plan" class="active"><span class="glyph">⚖</span>Plan</button>
+    <button data-tab="plan" class="active"><span class="glyph"><i class="fa-solid fa-clipboard-list"></i></span>Plan</button>
     <div class="tab-dropdown">
-      <button class="tab-trigger"><span class="glyph">⚗</span>Brewing ▾</button>
+      <button class="tab-trigger"><span class="glyph"><i class="fa-solid fa-flask"></i></span>Brewing <i class="fa-solid fa-caret-down" style="font-size:10px"></i></button>
       <div class="tab-menu">
-        <button data-tab="brewing">Compendium</button>
-        <button data-tab="brewPlan">Brew Plan</button>
+        <button data-tab="brewing"><i class="fa-solid fa-book"></i> Compendium</button>
+        <button data-tab="brewPlan"><i class="fa-solid fa-calendar-check"></i> Brew Plan</button>
       </div>
     </div>
     <div class="tab-dropdown">
-      <button class="tab-trigger"><span class="glyph">⚒</span>Crafting ▾</button>
+      <button class="tab-trigger"><span class="glyph"><i class="fa-solid fa-hammer"></i></span>Crafting <i class="fa-solid fa-caret-down" style="font-size:10px"></i></button>
       <div class="tab-menu">
-        <button data-tab="recipes">Recipes</button>
-        <button data-tab="seeds">Seeds &amp; Crops</button>
-        <button data-tab="menu">Menu Planner</button>
-        <button data-tab="shopping">Shopping List</button>
+        <button data-tab="recipes"><i class="fa-solid fa-scroll"></i> Recipes</button>
+        <button data-tab="seeds"><i class="fa-solid fa-seedling"></i> Seeds &amp; Crops</button>
+        <button data-tab="menu"><i class="fa-solid fa-utensils"></i> Menu Planner</button>
+        <button data-tab="shopping"><i class="fa-solid fa-cart-shopping"></i> Shopping List</button>
       </div>
     </div>
     <div class="tab-dropdown">
-      <button class="tab-trigger"><span class="glyph">⚔</span>World ▾</button>
+      <button class="tab-trigger"><span class="glyph"><i class="fa-solid fa-globe"></i></span>World <i class="fa-solid fa-caret-down" style="font-size:10px"></i></button>
       <div class="tab-menu">
-        <button data-tab="vendors">Vendors</button>
-        <button data-tab="fish">Fish</button>
-        <button data-tab="foraging">Foraging</button>
-        <button data-tab="map">Map</button>
+        <button data-tab="vendors"><i class="fa-solid fa-store"></i> Vendors</button>
+        <button data-tab="fish"><i class="fa-solid fa-fish"></i> Fish</button>
+        <button data-tab="foraging"><i class="fa-solid fa-tree"></i> Foraging</button>
+        <button data-tab="map"><i class="fa-solid fa-map"></i> Map</button>
       </div>
     </div>
     <div class="tab-dropdown">
-      <button class="tab-trigger"><span class="glyph">★</span>Progress ▾</button>
+      <button class="tab-trigger"><span class="glyph"><i class="fa-solid fa-trophy"></i></span>Progress <i class="fa-solid fa-caret-down" style="font-size:10px"></i></button>
       <div class="tab-menu">
-        <button data-tab="quests">Quests</button>
-        <button data-tab="perks">Perks</button>
-        <button data-tab="reputation">Reputation</button>
+        <button data-tab="quests"><i class="fa-solid fa-list-check"></i> Quests</button>
+        <button data-tab="perks"><i class="fa-solid fa-star"></i> Perks</button>
+        <button data-tab="reputation"><i class="fa-solid fa-crown"></i> Reputation</button>
       </div>
     </div>
   </div>
@@ -1897,6 +1931,11 @@ footer.colophon .orn {
 <main>
   <div id="err"></div>
   <div id="content"><div class="loading">Reading the ledger</div></div>
+  <div class="cart-widget" id="cartWidget" onclick="setTab('shopping')" style="display:none">
+    <span class="cart-icon"><i class="fa-solid fa-cart-shopping"></i></span>
+    <span class="cart-count" id="cartCount">0</span>
+    <span class="cart-total" id="cartTotal"></span>
+  </div>
   <footer class="colophon">
     <span class="orn">❦ ⚜ ❦</span>
     Compiled from the keeper's records
@@ -1974,6 +2013,21 @@ let CART = [];
 
 async function loadCart() {
   CART = await jget("/api/cart?slot=" + encodeURIComponent(STATE.slot));
+  updateCartWidget();
+}
+
+function updateCartWidget() {
+  const w = $("#cartWidget");
+  if (!w) return;
+  const count = CART.reduce((s, i) => s + (i.qty || 0), 0);
+  const total = CART.reduce((s, i) => s + (i.buy_copper || 0) * (i.qty || 0), 0);
+  if (count > 0) {
+    w.style.display = "flex";
+    $("#cartCount").textContent = count;
+    $("#cartTotal").innerHTML = fmtMoney(total);
+  } else {
+    w.style.display = "none";
+  }
 }
 
 async function addToCart(itemId, name, buyCost, vendor, qty) {
@@ -2005,7 +2059,7 @@ async function clearCart() {
 }
 
 function cartButton(itemId, name, buyCost, vendor) {
-  return `<button class="cart-btn" onclick="event.stopPropagation(); addToCart(${itemId}, '${esc(name).replace(/'/g,"\\'")}', ${buyCost}, '${esc(vendor||"").replace(/'/g,"\\'")}', 1)" title="Add to shopping list">🛒</button>`;
+  return `<button class="cart-btn" onclick="event.stopPropagation(); addToCart(${itemId}, '${esc(name).replace(/'/g,"\\'")}', ${buyCost}, '${esc(vendor||"").replace(/'/g,"\\'")}', 1)" title="Add to shopping list"><i class="fa-solid fa-cart-shopping"></i></button>`;
 }
 
 /* ----- item link helper — makes any item name clickable ----- */
@@ -2164,13 +2218,13 @@ async function loadAll() {
    ============================================================ */
 function trendBadge(t) {
   if (t.grow_crop_id) {
-    if (t.is_planted) return `<span class="badge moss">growing ${t.planted_count}</span>`;
-    if (t.grow_best_season_now) return '<span class="badge gold glow">best now</span>';
-    if (t.grow_in_season_now) return '<span class="badge moss">in season</span>';
-    return '<span class="badge ember">off-season</span>';
+    if (t.is_planted) return `<span class="badge moss"><i class="fa-solid fa-leaf"></i> growing <strong style="color:#1a1008">${t.planted_count}</strong></span>`;
+    if (t.grow_best_season_now) return '<span class="badge gold glow"><i class="fa-solid fa-star"></i> best now</span>';
+    if (t.grow_in_season_now) return '<span class="badge moss"><i class="fa-solid fa-circle-check"></i> in season</span>';
+    return '<span class="badge ember"><i class="fa-solid fa-circle-xmark"></i> off-season</span>';
   }
-  if (t.unlocked_recipe_ids?.length) return '<span class="badge moss">unlocked</span>';
-  if (t.recipe_ids?.length) return '<span class="badge wax">locked</span>';
+  if (t.unlocked_recipe_ids?.length) return '<span class="badge moss"><i class="fa-solid fa-lock-open"></i> unlocked</span>';
+  if (t.recipe_ids?.length) return '<span class="badge wax"><i class="fa-solid fa-lock"></i> locked</span>';
   return "";
 }
 function renderTrendList(items) {
@@ -2205,33 +2259,36 @@ function renderCookCard(s) {
 }
 function renderPlantCard(s) {
   const deadline = s.plant_by_day === 0
-    ? '<span class="badge gold glow">plant TODAY</span>'
-    : `<span class="badge gold">plant in ≤${s.plant_by_day}d</span>`;
-  // Find the seed's vendor info for the cart button
-  const vendors = STATE.data.vendors || [];
+    ? '<span class="badge gold glow"><i class="fa-solid fa-seedling"></i> plant <strong style="color:#1a1008">TODAY</strong></span>'
+    : `<span class="badge gold"><i class="fa-solid fa-seedling"></i> plant within <strong style="color:#1a1008">${s.plant_by_day} &plusmn; 3d</strong></span>`;
+  // Find the seed in vendor stock using seed_item_id from seeds data
+  const seeds = STATE.data.seeds || [];
+  const seedData = seeds.find(sd => sd.crop_id === s.crop_id);
+  const seedItemId = seedData ? seedData.seed_item_id : null;
   let seedVendor = null;
   let seedBuy = 0;
-  let seedName = s.crop_name + " Seeds";
-  // Search vendors for this crop's seed
-  for (const v of vendors) {
-    for (const item of v.items) {
-      if (item.name && item.name.toLowerCase().includes(s.crop_name.toLowerCase()) &&
-          (item.name.toLowerCase().includes("seed") || item.name.toLowerCase().includes("sprout"))) {
-        seedVendor = v.vendor;
-        seedBuy = item.buy_copper;
-        seedName = item.name;
-        break;
+  let seedName = seedData ? (seedData.seed_name || s.crop_name + " Seeds") : s.crop_name + " Seeds";
+  if (seedItemId) {
+    const vendors = STATE.data.vendors || [];
+    for (const v of vendors) {
+      for (const item of v.items) {
+        if (item.item_id === seedItemId) {
+          seedVendor = v.vendor;
+          seedBuy = item.buy_copper;
+          seedName = item.name;
+          break;
+        }
       }
+      if (seedVendor) break;
     }
-    if (seedVendor) break;
   }
-  const cartBtn = seedVendor
-    ? cartButton(0, seedName, seedBuy, seedVendor)
+  const cartBtn = seedItemId
+    ? cartButton(seedItemId, seedName, seedBuy, seedVendor || "Lia")
     : '';
   return `
     <div class="card">
       <div class="head">
-        <div class="title">${iconHtml(_cropItemId(s.crop_id), 'lg')}${esc(s.crop_name)} ${s.is_best_now ? '<span class="badge gold">BEST</span>' : ''} ${cartBtn}</div>
+        <div class="title">${iconHtml(_cropItemId(s.crop_id), 'lg')}${esc(s.crop_name)} ${s.is_best_now ? '<span class="badge gold"><i class="fa-solid fa-star"></i> BEST</span>' : ''} ${cartBtn}</div>
         ${deadline}
       </div>
       <div class="meta">${s.days_to_grow}d to grow${s.reusable ? ' · perennial (regrow ' + s.days_until_new_harvest + 'd)' : ''} · ${s.yield_per_harvest}/harvest · target wk +${s.target_for_trend_week}</div>
@@ -2262,7 +2319,7 @@ function renderPlan() {
   return tiles
     + `<h2 class="section-head"><span class="ornament">✿</span> Plant now</h2>${plant}`
     + `<h2 class="section-head"><span class="ornament">⚒</span> Cook now</h2>${cook}`
-    + `<h2 class="section-head"><span class="ornament">⚗</span> Brew now</h2>${brew}`
+    + `<h2 class="section-head"><span class="ornament"><i class="fa-solid fa-flask"></i></span> Brew now</h2>${brew}`
     + `<h2 class="section-head"><span class="ornament">⚜</span> Four-week trend almanac</h2>`
     + `<div class="calendar">${p.calendar.map(renderWeek).join("")}</div>`;
 }
@@ -2414,7 +2471,7 @@ function renderPunnett(p) {
     }).join("")}
   </tr>`).join("");
   return `
-    <div class="punnett-label">⚗ Ingredient combinatorics — total batch cost</div>
+    <div class="punnett-label"><i class="fa-solid fa-flask"></i> Ingredient combinatorics — total batch cost</div>
     <table class="punnett">
       <thead>${head}</thead>
       <tbody>${body}</tbody>
@@ -2435,8 +2492,8 @@ function renderBrewCard(p, trendingIds, daysToRotation) {
   const startBy = isTrending && daysToRotation != null
     ? `<div class="start-by">⚜ Currently trending — ${fmtHours(p.total_brewing_hours)} brew. Start now to catch the +20% trend bonus before it rotates in ${daysToRotation}d.</div>`
     : "";
-  const lockBadge = p.is_unlocked ? "" : '<span class="badge wax">locked</span>';
-  const trendBadge = isTrending ? '<span class="badge gold glow">trending</span>' : '';
+  const lockBadge = p.is_unlocked ? "" : '<span class="badge wax"><i class="fa-solid fa-lock"></i> locked</span>';
+  const trendBadge = isTrending ? '<span class="badge gold glow"><i class="fa-solid fa-chart-line"></i> trending</span>' : '';
   return `
     <div class="brew-card ${p.is_unlocked ? '' : 'locked'}">
       <div class="head">
@@ -2465,7 +2522,7 @@ function renderBrewing() {
   const visible = u.showLocked ? plans : plans.filter(p => p.is_unlocked);
   const unlockedCount = plans.filter(p => p.is_unlocked).length;
   return `
-    <h2 class="section-head"><span class="ornament">⚗</span> The brewer's compendium</h2>
+    <h2 class="section-head"><span class="ornament"><i class="fa-solid fa-flask"></i></span> The brewer's compendium</h2>
     <div class="filter-bar">
       <div class="pill-group">
         <button data-toggle="unlocked" class="${u.showLocked ? '' : 'on'}">Unlocked (${unlockedCount})</button>
@@ -2506,8 +2563,8 @@ function renderRecipeBody() {
   const rows = recipeRows();
   $("#recipeCount").textContent = rows.length + " recipes";
   return rows.map(r => {
-    const lockBadge = r.is_unlocked ? "" : ' <span class="badge wax">locked</span>';
-    const ageBadge  = r.can_be_aged ? ' <span class="badge gold">agable</span>' : "";
+    const lockBadge = r.is_unlocked ? "" : ' <span class="badge wax"><i class="fa-solid fa-lock"></i> locked</span>';
+    const ageBadge  = r.can_be_aged ? ' <span class="badge gold"><i class="fa-solid fa-wine-bottle"></i> agable</span>' : "";
     const cls = r.is_unlocked ? "" : "dim";
     let mainRow = `
       <tr class="expandable ${cls}" data-rid="${r.recipe_id}">
@@ -2616,10 +2673,10 @@ function renderVendors() {
     const rows = items.map(i => {
       let stockBadge = "";
       if (i.in_stock !== null && i.in_stock !== undefined) {
-        if (i.in_stock === 0) stockBadge = '<span class="badge wax">sold out</span>';
-        else stockBadge = `<span class="badge moss">${i.in_stock} in stock</span>`;
+        if (i.in_stock === 0) stockBadge = '<span class="badge wax"><i class="fa-solid fa-ban"></i> sold out</span>';
+        else stockBadge = `<span class="badge moss"><i class="fa-solid fa-box"></i> <strong style="color:#1a1008">${i.in_stock}</strong> in stock</span>`;
       }
-      if (i.daily_special) stockBadge += ' <span class="badge gold">today only</span>';
+      if (i.daily_special) stockBadge += ' <span class="badge gold"><i class="fa-solid fa-sparkles"></i> today only</span>';
       return `
       <tr${i.in_stock === 0 ? ' style="opacity:0.4"' : ''}>
         <td class="nm ${i.always ? 'always' : ''}">${itemLink(i.item_id, i.name)} ${stockBadge}</td>
@@ -2790,8 +2847,8 @@ function renderBrewPlanWeek(w) {
     const lockBadge = p.is_unlocked ? "" : '<span class="badge wax">locked</span>';
     const wineBadge = p.is_wine ? '<span class="badge ember">wine</span>' : '';
     const startBy = p.start_brewing_by_day === 0
-      ? '<span class="badge gold glow">start TODAY</span>'
-      : `<span class="badge gold">start by day ${p.start_brewing_by_day}</span>`;
+      ? '<span class="badge gold glow"><i class="fa-solid fa-flask"></i> start <strong style="color:#1a1008">TODAY</strong></span>'
+      : `<span class="badge gold"><i class="fa-solid fa-flask"></i> start by day <strong style="color:#1a1008">${p.start_brewing_by_day}</strong></span>`;
     const combo = p.best_combo.map(c => {
       const cls = c.is_trending ? 'class="combo trend"' : 'class="combo"';
       return `<span ${cls}>${c.slot_amount}× ${itemLink(c.item_id, c.item_name)}${c.mod_name ? ` (${esc(c.mod_name)})` : ""}</span>`;
@@ -2939,11 +2996,12 @@ function renderShopping() {
         const rows = items.map(i => `
           <div class="slot">
             <div class="label">
-              <span class="amt">${i.qty}×</span>${itemLink(i.item_id, i.name)}
+              <input type="number" min="1" max="999" value="${i.qty}" style="width:50px;font-family:var(--font-mono);font-size:13px;padding:2px 4px;border:1px solid var(--rule);text-align:center;font-weight:700" onchange="updateCartQty(${i.item_id}, +this.value)">
+              × ${itemLink(i.item_id, i.name)}
             </div>
             <div class="cost">
               ${fmtMoney(i.buy_copper * i.qty)}
-              <span style="cursor:pointer;color:var(--burgundy);margin-left:8px" onclick="removeShoppingItem(${i.item_id})">✕</span>
+              <span style="cursor:pointer;color:var(--burgundy);margin-left:8px;font-size:16px" onclick="removeShoppingItem(${i.item_id})"><i class="fa-solid fa-trash"></i></span>
             </div>
           </div>`).join("");
         return `
@@ -2990,7 +3048,7 @@ function renderShopping() {
   }
 
   return `
-    <h2 class="section-head"><span class="ornament">🛒</span> Shopping checklist</h2>
+    <h2 class="section-head"><span class="ornament"><i class="fa-solid fa-cart-shopping"></i></span> Shopping checklist</h2>
 
     <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px">
       <div class="stat-tile"><div class="label">Items</div><div class="value">${list.length}</div></div>
@@ -3016,6 +3074,7 @@ async function addShoppingItem(itemId, name, buyCost, vendor) {
   const existing = CART.find(i => i.item_id === itemId);
   if (existing) existing.qty = (existing.qty || 0) + 1;
   else CART.push({ item_id: itemId, name: name, qty: 1, buy_copper: buyCost, vendor: vendor });
+  updateCartWidget();
   if (STATE.tab === "shopping") renderTab();
   const f = $("#shopSearchFilter");
   if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
@@ -3024,12 +3083,27 @@ async function addShoppingItem(itemId, name, buyCost, vendor) {
 async function removeShoppingItem(itemId) {
   await removeFromCart(itemId);
   CART = CART.filter(i => i.item_id !== itemId);
+  updateCartWidget();
+  if (STATE.tab === "shopping") renderTab();
+}
+
+async function updateCartQty(itemId, qty) {
+  const item = CART.find(i => i.item_id === itemId);
+  if (!item) return;
+  if (qty <= 0) { removeShoppingItem(itemId); return; }
+  item.qty = Math.min(qty, 9999);
+  await fetch("/api/cart", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ slot: STATE.slot, action: "set", items: CART }),
+  });
   if (STATE.tab === "shopping") renderTab();
 }
 
 async function clearShopping() {
   await clearCart();
   CART = [];
+  updateCartWidget();
   if (STATE.tab === "shopping") renderTab();
 }
 
@@ -3502,11 +3576,25 @@ function runSearch(query) {
   if (!scored.length) {
     $("#searchResults").innerHTML = '<div class="search-result"><span class="nm" style="color:var(--ink-ghost)">no matches</span></div>';
   } else {
-    $("#searchResults").innerHTML = scored.map(({ e }) => `
+    $("#searchResults").innerHTML = scored.map(({ e }) => {
+      // Find if this item is buyable from a vendor for the cart button
+      let cartHtml = "";
+      if (e.kind === "item" || e.kind === "crop" || e.kind === "fish") {
+        const vendors = STATE.data.vendors || [];
+        for (const v of vendors) {
+          const match = v.items.find(i => i.item_id === e.id && i.buy_copper > 0);
+          if (match) {
+            cartHtml = `<span class="cart-btn" onclick="event.stopPropagation(); addToCart(${e.id}, '${esc(e.name).replace(/'/g,"\\'")}', ${match.buy_copper}, '${esc(v.vendor).replace(/'/g,"\\'")}', 1)"><i class="fa-solid fa-cart-plus"></i></span>`;
+            break;
+          }
+        }
+      }
+      return `
       <div class="search-result" data-tab="${e.tab}" data-name="${esc(e.name)}">
-        <div class="nm">${iconHtml(e.id)}${esc(e.name)}</div>
+        <div class="nm">${iconHtml(e.id)}${esc(e.name)} ${cartHtml}</div>
         <div class="kind">${e.kind}</div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
     $$("#searchResults .search-result").forEach(el => el.addEventListener("click", () => {
       setTab(el.dataset.tab);
       // Pre-fill any tab filter on jump
@@ -3552,6 +3640,7 @@ function connectWS() {
         if (m.type === "save_changed") setTimeout(loadAll, 500);
         if (m.type === "cart_updated" && m.slot === STATE.slot) {
           CART = m.cart || [];
+          updateCartWidget();
           if (STATE.tab === "shopping") renderTab();
         }
       } catch (_) {}

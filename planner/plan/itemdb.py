@@ -140,12 +140,16 @@ def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
             "yield_best": crop.amount_best_season,
         })
 
-    # 3. Vendors that sell this item
+    # 3. Vendors that sell this item (dedupe by vendor name)
+    seen_vendors = set()
     for shop in cat.shops:
+        if shop.name in seen_vendors:
+            continue
         for si in shop.items:
             si_pid = (si.get("item") or {}).get("m_PathID", 0)
             si_item = cat.items_by_path_id.get(si_pid)
             if si_item and si_item.item_id == item_id:
+                seen_vendors.add(shop.name)
                 sources.append({
                     "type": "vendor",
                     "vendor": shop.name,
@@ -153,8 +157,11 @@ def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
                     "buy_copper": si_item.buy_copper,
                     "always_stocked": bool(si.get("alwaysAppear", 0)),
                 })
+                break
 
-    # 4. Bush/foraging that drops this item
+    # 4. Bush/foraging that drops this item (dedupe — many bushes drop same item)
+    forage_added = False
+    best_forage = None
     for bush in cat.bushes:
         h = bush.raw.get("harvestedItems") or {}
         h_pid = 0
@@ -163,12 +170,17 @@ def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
             h_pid = inner.get("m_PathID", 0) if isinstance(inner, dict) else 0
         h_item = cat.items_by_path_id.get(h_pid)
         if h_item and h_item.item_id == item_id:
-            sources.append({
-                "type": "foraging",
-                "name": tr.item(h_item.item_id, h_item.name_id, h_item.name),
-                "amount_min": bush.raw.get("amountMin", 0),
-                "amount_max": bush.raw.get("amountMax", 0),
-            })
+            amt_min = bush.raw.get("amountMin", 0)
+            amt_max = bush.raw.get("amountMax", 0)
+            if best_forage is None or amt_max > best_forage["amount_max"]:
+                best_forage = {
+                    "type": "foraging",
+                    "name": tr.item(h_item.item_id, h_item.name_id, h_item.name),
+                    "amount_min": amt_min,
+                    "amount_max": amt_max,
+                }
+    if best_forage:
+        sources.append(best_forage)
 
     # 5. Is it a fish?
     for fish in cat.fishes:
