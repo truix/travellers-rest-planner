@@ -186,77 +186,118 @@ class GameState:
 
 
 def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.0) -> GameState:
-    ct = root.currentTime
-    season_idx = _enum_int(ct.season) or 0
-    day_idx = _enum_int(ct.day) or 0
-    date = GameDate(
-        year=ct.year,
-        season=season_idx,
-        season_name=SEASON_NAMES[season_idx % 4],
-        week=ct.week,
-        day=day_idx,
-        day_name=DAY_NAMES[day_idx % 7],
-        hour=ct.hour,
-        minute=ct.min,
-    )
+    """Extract game state from the parsed save root. Every field access is
+    wrapped in try/except so a single changed/missing field doesn't crash
+    the whole parser — we just get a default value for that field."""
 
+    # Current date
+    try:
+        ct = root.currentTime
+        season_idx = _enum_int(ct.season) or 0
+        day_idx = _enum_int(ct.day) or 0
+        date = GameDate(
+            year=getattr(ct, "year", 1),
+            season=season_idx,
+            season_name=SEASON_NAMES[season_idx % 4],
+            week=getattr(ct, "week", 1),
+            day=day_idx,
+            day_name=DAY_NAMES[day_idx % 7],
+            hour=getattr(ct, "hour", 6),
+            minute=getattr(ct, "min", 0),
+        )
+    except Exception:
+        date = GameDate(1, 0, "Spring", 1, 0, "Mon", 6, 0)
+
+    # Trends
     trends: list[TrendSet] = []
-    for ts in (root.allTrendsSave or []):
-        trends.append(TrendSet(
-            food_ids=list(_attr(ts, "foodTrends", []) or []),
-            drink_ids=list(_attr(ts, "drinkTrends", []) or []),
-            ingredient_ids=list(_attr(ts, "ingredientTrends", []) or []),
-        ))
+    try:
+        for ts in (getattr(root, "allTrendsSave", None) or []):
+            trends.append(TrendSet(
+                food_ids=[int(x) for x in (_attr(ts, "foodTrends", []) or [])],
+                drink_ids=[int(x) for x in (_attr(ts, "drinkTrends", []) or [])],
+                ingredient_ids=[int(x) for x in (_attr(ts, "ingredientTrends", []) or [])],
+            ))
+    except Exception:
+        pass
 
+    # Planted crops
     crops: list[CropPlanted] = []
     counts: dict[int, int] = {}
-    for c in (root.cropSaves or []):
-        cp = CropPlanted(
-            crop_id=c.cropID,
-            pos=(c.position.x, c.position.y),
-            grow_stage=c.growstage,
-            is_harvestable=bool(c.isHarvestable),
-            days_to_grow=c.daysToGrow,
-            days_until_new_harvest=c.daysUntilNewHarvest,
-            reusable_count=c.reusableCount,
-            is_dead=bool(c.isDead),
-            days_planted=c.daysPlanted,
-        )
-        crops.append(cp)
-        counts[cp.crop_id] = counts.get(cp.crop_id, 0) + 1
+    try:
+        for c in (getattr(root, "cropSaves", None) or []):
+            try:
+                pos = getattr(c, "position", None)
+                cp = CropPlanted(
+                    crop_id=int(getattr(c, "cropID", 0)),
+                    pos=(getattr(pos, "x", 0), getattr(pos, "y", 0)) if pos else (0, 0),
+                    grow_stage=int(getattr(c, "growstage", 0)),
+                    is_harvestable=bool(getattr(c, "isHarvestable", False)),
+                    days_to_grow=int(getattr(c, "daysToGrow", 0)),
+                    days_until_new_harvest=int(getattr(c, "daysUntilNewHarvest", 0)),
+                    reusable_count=int(getattr(c, "reusableCount", 0)),
+                    is_dead=bool(getattr(c, "isDead", False)),
+                    days_planted=int(getattr(c, "daysPlanted", 0)),
+                )
+                crops.append(cp)
+                counts[cp.crop_id] = counts.get(cp.crop_id, 0) + 1
+            except Exception:
+                continue
+    except Exception:
+        pass
 
-    # tavern + player name from characterSave
+    # Tavern + player name
     tavern_name = ""
     player_name = ""
-    cs = getattr(root, "characterSave", None)
-    if cs is not None:
-        tavern_name = getattr(cs, "tavernName", "") or ""
-        player_name = getattr(cs, "name", "") or ""
+    try:
+        cs = getattr(root, "characterSave", None)
+        if cs is not None:
+            tavern_name = str(getattr(cs, "tavernName", "") or "")
+            player_name = str(getattr(cs, "name", "") or "")
+    except Exception:
+        pass
 
-    # quest state
+    # Quest state
     quests_done: set[int] = set()
-    for q in (getattr(root, "questsDoneSave", None) or []):
-        try:
-            quests_done.add(int(q))
-        except Exception:
-            pass
+    try:
+        for q in (getattr(root, "questsDoneSave", None) or []):
+            try:
+                quests_done.add(int(q))
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     quests_active: dict[int, int] = {}
-    for q in (getattr(root, "questSaves", None) or []):
-        try:
-            quests_active[int(getattr(q, "questID"))] = int(getattr(q, "questProgress", 0))
-        except Exception:
-            pass
+    try:
+        for q in (getattr(root, "questSaves", None) or []):
+            try:
+                quests_active[int(getattr(q, "questID"))] = int(getattr(q, "questProgress", 0))
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # Unlocked recipes
+    unlocked: set[int] = set()
+    try:
+        for r in (getattr(root, "unlockedRecipes", None) or []):
+            try:
+                unlocked.add(int(r))
+            except Exception:
+                pass
+    except Exception:
+        pass
 
     return GameState(
         slot_id=slot_id,
         save_path=save_path,
         save_mtime=save_mtime,
-        money_copper=int(root.money),
-        tavern_rep=int(root.tavernRep),
-        days_to_next_trend=int(root.daysToNextTrend),
+        money_copper=int(getattr(root, "money", 0)),
+        tavern_rep=int(getattr(root, "tavernRep", 0)),
+        days_to_next_trend=int(getattr(root, "daysToNextTrend", 0)),
         current_date=date,
         trends=trends,
-        unlocked_recipe_ids=set(int(r) for r in (root.unlockedRecipes or [])),
+        unlocked_recipe_ids=unlocked,
         planted_crops=crops,
         planted_crop_counts=counts,
         tavern_name=tavern_name,

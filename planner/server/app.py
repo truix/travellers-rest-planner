@@ -164,8 +164,18 @@ def _load_state_for(slot_id: str | None):
     # Re-discover the latest save in the slot folder so we always pick up the freshest
     latest = latest_save_in_folder(slot.folder) or slot.latest_file
     mt = os.path.getmtime(latest)
-    root = parse_save(latest)
-    return extract(root, slot_id=slot.slot_id, save_path=latest, save_mtime=mt)
+    try:
+        root = parse_save(latest)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise
+    try:
+        return extract(root, slot_id=slot.slot_id, save_path=latest, save_mtime=mt)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 @app.get("/api/state")
@@ -198,12 +208,22 @@ def api_plan(
     slot: str | None = Query(default=None),
     lang: str = Query(default=DEFAULT_LANG),
 ):
-    state = _load_state_for(slot)
+    try:
+        state = _load_state_for(slot)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"error": f"save parse failed: {e}"}, status_code=500)
     if state is None:
         return JSONResponse({"error": "no save"}, status_code=404)
-    cat = load_catalog()
-    plan = build_plan(state, cat, language=lang)
-    return plan_to_dict(plan)
+    try:
+        cat = load_catalog()
+        plan = build_plan(state, cat, language=lang)
+        return plan_to_dict(plan)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"error": f"plan build failed: {e}"}, status_code=500)
 
 
 def _to_jsonable(obj):
