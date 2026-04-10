@@ -101,37 +101,37 @@ Tick recipes to add to your tavern menu. Live aggregate stats: total fuel, total
 ## Quick start
 
 ### Prerequisites
-- **Travellers Rest** installed locally (Steam, GOG, or any other source)
-- **Python 3.10+**
-- A recent .NET runtime (for `ilspycmd` if you want to re-decompile any classes; not required at runtime)
+- **Travellers Rest** installed via Steam
+- **Python 3.10+** ([python.org/downloads](https://www.python.org/downloads/) — check "Add to PATH" during install)
+- **Git** ([git-scm.com](https://git-scm.com/))
 
-### Install
+### Easy install (Windows)
+
+```
+git clone https://github.com/truix/travellers-rest-planner.git
+cd travellers-rest-planner
+```
+
+Then just double-click **`install.bat`**. It does everything — installs packages, finds your game, extracts all the data, and launches the planner.
+
+After that, double-click **`run.bat`** anytime to start it. It auto-opens your browser.
+
+### Manual install
+
+If you're on Mac/Linux or prefer doing it yourself:
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/travellers-rest-planner.git
+git clone https://github.com/truix/travellers-rest-planner.git
 cd travellers-rest-planner
 pip install -r requirements.txt
+python install.py
 ```
 
-### Extract game data (one-time, ~5 minutes)
-
-The repository ships **no game assets** for legal reasons. The extraction scripts read your local Travellers Rest install and produce the planner's data files.
-
-```bash
-python scripts/dump_mono.py      # ScriptableObjects: items, recipes, crops, etc.
-python scripts/dump_i2l.py       # Localization terms (30 languages)
-python scripts/dump_icons.py     # Item sprites → data/icons/<id>.png
-python scripts/dump_coins.py     # Coin sprites for the currency formatter
-python scripts/dump_hotspots.py  # Walks scene files for tree/bush/NPC positions
-python scripts/dump_maps.py      # Renders scene tilemap PNG backgrounds (~7 MB)
-python scripts/synthesize.py     # Builds csv summary tables
-```
-
-The scripts **auto-detect** your Steam install on Windows / macOS / Linux. If you have it somewhere unusual, set:
+The installer auto-detects your Steam install. If it can't find the game, it'll ask you to paste the path. You can also set it manually:
 
 ```bash
 # Windows
-set TR_GAME_DIR=F:\Games\SteamLibrary\steamapps\common\Travellers Rest\Windows\TravellersRest_Data
+set TR_GAME_DIR=F:\SteamLibrary\steamapps\common\Travellers Rest\Windows\TravellersRest_Data
 
 # macOS
 export TR_GAME_DIR="$HOME/Library/Application Support/Steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data"
@@ -142,13 +142,23 @@ export TR_GAME_DIR="$HOME/.steam/steam/steamapps/common/Travellers Rest/Windows/
 
 ### Run
 
+Double-click **`run.bat`** or:
+
 ```bash
 python -m planner
 ```
 
-Then open <http://127.0.0.1:8765/>.
+Opens at <http://127.0.0.1:8765/>. The planner watches your save folder and auto-refreshes when the game autosaves.
 
-The planner watches `%AppData%/LocalLow/Louqou/TravellersRest/GameSaves/` (or the OS equivalent). Every time the game autosaves, the UI auto-refreshes.
+### After a game update
+
+Re-run the installer to re-extract the updated game data:
+
+```
+python install.py
+```
+
+Or just double-click `install.bat` again.
 
 ### Run the tests
 
