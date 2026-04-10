@@ -68,3 +68,8 @@ desktop.ini
 # ── Misc ────────────────────────────────────────────────────
 *.bak
 *.tmp
+mod/
+scripts/deobfuscate.py
+scripts/deobfuscate_all.py
+scripts/fix_csproj.py
+scripts/trainer.py

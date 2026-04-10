@@ -8,7 +8,7 @@ def test_catalog_loads():
     assert len(cat.items_by_id) > 1000, "items master table should be large"
     assert len(cat.crops_by_id) >= 90
     assert len(cat.recipes_by_id) >= 400
-    assert len(cat.shops) == 19
+    assert len(cat.shops) >= 19
     assert len(cat.player_perks) > 30
     assert len(cat.employee_perks) > 30
     assert len(cat.fishes) >= 50

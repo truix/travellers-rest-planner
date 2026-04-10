@@ -18,6 +18,33 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+import pypdn.nrbf as _nrbf_mod
+
+# Monkey-patch pypdn to handle new Dictionary types in game updates.
+# The game added Dictionary<int,...> fields that pypdn's NRBF parser
+# can't resolve (missing KeyValuePairs attribute).
+#
+# The dispatch table at line ~742 of nrbf.py holds a direct reference
+# to the original function, so patching the class method isn't enough.
+# We patch the original function object in-place via its code object.
+_orig_resolve = _nrbf_mod.NRBF._resolveDictReference
+
+def _safe_resolve_dict_ref(self, reference):
+    try:
+        originalObj = reference.originalObj
+        if not hasattr(originalObj, 'KeyValuePairs'):
+            return  # skip unsupported dictionary types
+        return _orig_resolve(self, reference)
+    except (AttributeError, TypeError):
+        return
+
+# Replace the class method AND rebuild the dispatch tuple
+_nrbf_mod.NRBF._resolveDictReference = _safe_resolve_dict_ref
+_nrbf_mod.NRBF._collectionResolvers = tuple(
+    (name, _safe_resolve_dict_ref) if 'Dict' in name else (name, func)
+    for name, func in _nrbf_mod.NRBF._collectionResolvers
+)
+
 from pypdn.nrbf import NRBF
 
 
