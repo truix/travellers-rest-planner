@@ -121,10 +121,19 @@ def main():
 
     # Step 5: Launch
     print(f"\n{'='*60}")
-    print(f"  done! launching planner...")
+    print(f"  done!")
     print(f"{'='*60}\n")
-    print(f"  open http://127.0.0.1:8765/ in your browser\n")
-    print(f"  press ctrl+c to stop the server\n")
+    print(f"  to run the planner:")
+    print(f"    python -m planner              (solo, localhost only)")
+    print(f"    python -m planner --share       (LAN, friends on same WiFi)")
+    print(f"    python -m planner --tunnel      (internet, anyone with the link)")
+    print(f"")
+    print(f"  for --tunnel you need a free ngrok account (one-time setup):")
+    print(f"    1. sign up at https://ngrok.com")
+    print(f"    2. copy your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken")
+    print(f"    3. run: ngrok config add-authtoken YOUR_TOKEN")
+    print(f"")
+    print(f"  launching now...\n")
 
     subprocess.run([sys.executable, "-m", "planner"])
 

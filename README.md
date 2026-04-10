@@ -159,6 +159,33 @@ python -m planner
 
 Opens at <http://127.0.0.1:8765/>. The planner watches your save folder and auto-refreshes when the game autosaves.
 
+### Multiplayer sharing
+
+The host runs the planner and friends can view it — no install needed on their end, they just open a link in their browser.
+
+**Same WiFi / LAN:**
+```
+python -m planner --share
+```
+Prints your local IP. Friends go to `http://192.168.x.x:8765/` and see your live planner.
+
+**Over the internet (anyone, anywhere):**
+```
+python -m planner --tunnel
+```
+Creates a public URL via [ngrok](https://ngrok.com/) that anyone can open. The planner auto-installs ngrok on first run via pyngrok.
+
+**First-time ngrok setup** (only needed once):
+1. Go to [ngrok.com](https://ngrok.com/) and create a free account
+2. After signing in, go to [dashboard.ngrok.com/get-started/your-authtoken](https://dashboard.ngrok.com/get-started/your-authtoken)
+3. Copy your authtoken
+4. Run: `ngrok config add-authtoken YOUR_TOKEN_HERE`
+5. Done — `--tunnel` will work from now on
+
+That's it. Send the ngrok link to your friends on Discord. They open it in a browser and see everything — trends, recipes, the map, your planted crops, the shared shopping cart. The page auto-refreshes when the game saves. The shopping cart syncs live across all connected viewers so the whole party can add stuff to the list.
+
+**What friends see:** everything the host sees. The planner reads the host's save file and serves it. Friends don't need the game installed, don't need Python, don't need to extract anything. Just a browser.
+
 ### After a game update
 
 Re-run the installer to re-extract the updated game data:
