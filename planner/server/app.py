@@ -208,6 +208,7 @@ def api_state(slot: str | None = Query(default=None)):
         ],
         "unlocked_recipe_ids": list(state.unlocked_recipe_ids),
         "planted_crop_counts": state.planted_crop_counts,
+        "item_counts": state.item_counts,
     }
 
 
@@ -525,11 +526,14 @@ def api_reputation(lang: str = Query(default=DEFAULT_LANG)):
 
 
 @app.get("/api/item/{item_id}")
-def api_item(item_id: int, lang: str = Query(default=DEFAULT_LANG)):
+def api_item(item_id: int, lang: str = Query(default=DEFAULT_LANG),
+             slot: str | None = Query(default=None)):
     """Full dossier on any item — sources, uses, vendors, crops, recipes."""
     cat = load_catalog()
     tr = Translator(lang)
-    detail = item_detail(item_id, cat, tr)
+    state = _load_state_for(slot)
+    planted = state.planted_crop_counts if state else None
+    detail = item_detail(item_id, cat, tr, planted_counts=planted)
     if not detail:
         return JSONResponse({"error": "item not found"}, status_code=404)
     return detail
@@ -605,8 +609,9 @@ def api_brewing(slot: str | None = Query(default=None),
     return _to_jsonable(plans)
 
 
-# ---- Shared shopping cart (per save slot, synced across all connected clients) ----
+# ---- Shared state (per save slot, synced across all connected clients) ----
 _carts: dict[str, list[dict]] = {}  # slot_id -> [{item_id, name, qty, buy_copper, vendor}]
+_menus: dict[str, list[int]] = {}   # slot_id -> [recipe_id, ...]
 
 
 @app.get("/api/cart")
@@ -653,6 +658,33 @@ async def api_cart_update(data: dict):
     # Broadcast to all connected clients
     await manager.broadcast({"type": "cart_updated", "slot": sid, "cart": _carts.get(sid, [])})
     return _carts.get(sid, [])
+
+
+@app.get("/api/menu")
+def api_menu(slot: str | None = Query(default=None)):
+    sid = slot or "default"
+    return _menus.get(sid, [])
+
+
+@app.post("/api/menu")
+async def api_menu_update(data: dict):
+    sid = str(data.get("slot", "default"))[:50]
+    action = data.get("action", "set")
+    if action == "set":
+        _menus[sid] = [int(r) for r in data.get("recipes", [])][:100]
+    elif action == "add":
+        menu = _menus.setdefault(sid, [])
+        rid = int(data.get("recipe_id", 0))
+        if rid and rid not in menu and len(menu) < 100:
+            menu.append(rid)
+    elif action == "remove":
+        rid = int(data.get("recipe_id", 0))
+        menu = _menus.get(sid, [])
+        _menus[sid] = [r for r in menu if r != rid]
+    elif action == "clear":
+        _menus[sid] = []
+    await manager.broadcast({"type": "menu_updated", "slot": sid, "menu": _menus.get(sid, [])})
+    return _menus.get(sid, [])
 
 
 @app.websocket("/ws")

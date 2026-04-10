@@ -34,6 +34,17 @@ def list_craftables(cat: Catalog, tr: Translator,
                              output_name_id=out_item.name_id if out_item else None)
         if q and q not in out_name.lower() and q not in r.name.lower():
             continue
+        # Resolve ingredient names for menu planner
+        ings = []
+        for iid, amt in r.ingredients:
+            ing_item = cat.items_by_id.get(iid)
+            ings.append({
+                "item_id": iid,
+                "name": tr.item(ing_item.item_id, ing_item.name_id, ing_item.name) if ing_item else f"#{iid}",
+                "amount": amt,
+                "buy_copper": ing_item.buy_copper if ing_item else 0,
+                "sell_copper": ing_item.sell_copper if ing_item else 0,
+            })
         out.append({
             "recipe_id": r.recipe_id,
             "name": out_name,
@@ -50,6 +61,7 @@ def list_craftables(cat: Catalog, tr: Translator,
             # Drinks (group 2) all benefit from aging in a barrel; foods only
             # if they're explicitly flagged hasToBeAgedMeal (cheeses, hams).
             "can_be_aged": bool(r.group == 2 or (out_item and out_item.has_to_be_aged_meal)),
+            "ingredients": ings,
         })
     out.sort(key=lambda x: (not x["is_unlocked"], -x["profit_per_craft"]))
     return out

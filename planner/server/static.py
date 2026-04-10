@@ -1767,9 +1767,9 @@ canvas#mapCanvas {
   display: flex;
   gap: 10px;
   align-items: baseline;
-  padding: 5px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--parch-deep);
-  font-size: 13px;
+  font-size: 16px;
 }
 .modal-row:last-child { border-bottom: 0; }
 .modal-row .type-badge {
@@ -1789,9 +1789,10 @@ canvas#mapCanvas {
 .modal-row .type-badge.group { color: var(--ink-faded); }
 .modal-row .type-badge.planting { color: var(--moss); }
 .modal-row .detail {
-  color: var(--ink-faded);
-  font-size: 11px;
+  color: var(--ink-soft);
+  font-size: 14px;
   font-family: var(--font-mono);
+  font-weight: 500;
 }
 .modal-empty {
   color: var(--ink-ghost);
@@ -1962,7 +1963,7 @@ const STATE = {
     fish:     { filter: "" },
     foraging: { filter: "" },
     map:      { layer: "all", scene: "all" },
-    menu:     { picked: new Set(), filter: "" },
+    menu:     { filter: "" },  // picks synced server-side via /api/menu
     shopping: { filter: "" },  // cart is now server-side, synced via /api/cart
   },
 };
@@ -1999,6 +2000,35 @@ function fmtHours(h) {
   if (h < 24) return Number.isInteger(h) ? h + "h" : h.toFixed(1) + "h";
   const d = Math.floor(h / 24), rem = Math.round(h % 24);
   return rem ? `${d}d ${rem}h` : `${d}d`;
+}
+
+/* ----- synced menu planner ----- */
+let MENU_PICKS = [];  // [recipe_id, ...]
+
+async function loadMenu() {
+  MENU_PICKS = await jget("/api/menu?slot=" + encodeURIComponent(STATE.slot));
+}
+
+async function toggleMenuPick(rid) {
+  const action = MENU_PICKS.includes(rid) ? "remove" : "add";
+  await fetch("/api/menu", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ slot: STATE.slot, action, recipe_id: rid }),
+  });
+  if (action === "add" && !MENU_PICKS.includes(rid)) MENU_PICKS.push(rid);
+  else MENU_PICKS = MENU_PICKS.filter(r => r !== rid);
+  if (STATE.tab === "menu") renderTab();
+}
+
+async function clearMenu() {
+  await fetch("/api/menu", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ slot: STATE.slot, action: "clear" }),
+  });
+  MENU_PICKS = [];
+  if (STATE.tab === "menu") renderTab();
 }
 
 /* ----- crop_id → harvest_item_id lookup (for icons) ----- */
@@ -2072,7 +2102,7 @@ function itemLink(itemId, name, showIcon) {
 async function openItem(itemId) {
   const lang = STATE.lang || "English";
   try {
-    const d = await jget("/api/item/" + itemId + "?lang=" + encodeURIComponent(lang));
+    const d = await jget("/api/item/" + itemId + "?lang=" + encodeURIComponent(lang) + "&slot=" + encodeURIComponent(STATE.slot));
     showItemModal(d);
   } catch (e) {
     console.error(e);
@@ -2088,7 +2118,8 @@ function showItemModal(d) {
           const ings = s.ingredients.map(i => `${i.amount}x ${itemLink(i.item_id, i.name, false)}`).join(" + ");
           detail = `<div class="detail">${s.output_qty}x · ${fmtHours(s.time_hours)} · ${ings}</div>`;
         } else if (s.type === "crop") {
-          detail = `<div class="detail">${s.days_to_grow}d grow · ${s.available_seasons.join(",")} · best ${s.best_seasons.join(",") || "none"} · yield ${s.yield_normal}-${s.yield_best} · seed: ${s.seed ? itemLink(s.seed_id, s.seed, false) : "?"}</div>`;
+          const growBadge = s.currently_growing > 0 ? ` · <strong style="color:#1a1008"><i class="fa-solid fa-leaf"></i> ${s.currently_growing} growing</strong>` : "";
+          detail = `<div class="detail">${s.days_to_grow}d grow · ${s.available_seasons.join(",")} · best ${s.best_seasons.join(",") || "none"} · yield ${s.yield_normal}–${s.yield_best} · seed: ${s.seed ? itemLink(s.seed_id, s.seed, false) : "?"}${growBadge}</div>`;
         } else if (s.type === "vendor") {
           detail = `<div class="detail">buy ${fmtMoney(s.buy_copper)}${s.always_stocked ? " · always in stock" : ""}</div>`;
         } else if (s.type === "foraging") {
@@ -2114,7 +2145,8 @@ function showItemModal(d) {
           detail = `<div class="detail">harvests ${u.harvest_name || "?"}</div>`;
         } else if (u.type === "ingredient_group") {
           label = esc(u.group_name);
-          detail = `<div class="detail">accepted in this ingredient group</div>`;
+          const groupRecipes = (u.recipes || []).map(r => itemLink(r.output_item_id, r.name, false)).join(", ");
+          detail = `<div class="detail">used in: ${groupRecipes || "no recipes"}</div>`;
         }
         return `<div class="modal-row"><span class="type-badge ${u.type === "recipe_ingredient" ? "recipe" : u.type === "planting" ? "crop" : "group"}">${u.type.replace("recipe_ingredient","recipe").replace("ingredient_group","group")}</span><div><div>${label}</div>${detail}</div></div>`;
       }).join("");
@@ -2291,9 +2323,9 @@ function renderPlantCard(s) {
         <div class="title">${iconHtml(_cropItemId(s.crop_id), 'lg')}${esc(s.crop_name)} ${s.is_best_now ? '<span class="badge gold"><i class="fa-solid fa-star"></i> BEST</span>' : ''} ${cartBtn}</div>
         ${deadline}
       </div>
-      <div class="meta">${s.days_to_grow}d to grow${s.reusable ? ' · perennial (regrow ' + s.days_until_new_harvest + 'd)' : ''} · ${s.yield_per_harvest}/harvest · target wk +${s.target_for_trend_week}</div>
+      <div class="meta" style="font-size:16px">${s.days_to_grow}d to grow${s.reusable ? ' · perennial (regrow ' + s.days_until_new_harvest + 'd)' : ''} · ${s.yield_per_harvest}/harvest · target wk +${s.target_for_trend_week}</div>
       <div class="meta">${seasonChips(s.available_seasons, s.best_seasons)}</div>
-      <div class="why">${esc(s.why.join(" · "))}</div>
+      <div class="why" style="font-size:14px">${esc(s.why.join(" · "))}</div>
     </div>`;
 }
 function renderPlan() {
@@ -2894,16 +2926,24 @@ function renderBrewPlan() {
 function renderMenuPlanner() {
   const u = STATE.ui.menu;
   const recipes = (STATE.data.recipes || []).filter(r => r.is_unlocked);
+  const pickedSet = new Set(MENU_PICKS);
+
   // Build trending sets for the bonus highlight
   const trending = new Set();
   if (STATE.data.plan)
     for (const t of (STATE.data.plan.calendar?.[0]?.food_trends || [])) trending.add(t.item_id);
   for (const t of (STATE.data.plan?.calendar?.[0]?.drink_trends || [])) trending.add(t.item_id);
 
+  // Current season from save
+  const today = STATE.data.plan?.today;
+  const curSeason = today ? today.season_number : 0;  // 0=Spring 1=Summer 2=Autumn 3=Winter
+  const seasonNames = ["Spring","Summer","Autumn","Winter"];
+
   const f = u.filter.trim().toLowerCase();
   const visible = !f ? recipes : recipes.filter(r => r.name.toLowerCase().includes(f));
 
-  const picked = [...u.picked].map(rid => recipes.find(r => r.recipe_id === rid)).filter(Boolean);
+  const picked = MENU_PICKS.map(rid => recipes.find(r => r.recipe_id === rid)).filter(Boolean);
+
   // Aggregate stats
   let totalCost = 0, totalSell = 0, totalFuel = 0, totalTime = 0;
   let drinkCount = 0, foodCount = 0, trendingCount = 0;
@@ -2917,11 +2957,81 @@ function renderMenuPlanner() {
     if (r.group === "Food")  foodCount++;
     if (trending.has(r.output_item_id)) trendingCount++;
   }
-  // Unique-bar-items bonus: +3c per unique drink on every drink sold (Money.cs:435)
   const uniqueBonusPerDrink = drinkCount * 3;
 
+  // === Ingredient breakdown ===
+  // Aggregate all ingredients across picked recipes
+  const ingMap = {};  // item_id -> {name, total, buy_copper, sell_copper, recipes:[]}
+  const seeds = STATE.data.seeds || [];
+  const itemCounts = (today && today.item_counts) || {};  // item_id -> qty in inventory+chests
+  const plantedCrops = {};  // harvest_item_id -> count currently growing
+  for (const s of seeds) {
+    if (s.planted_count > 0) plantedCrops[s.harvest_item_id] = s.planted_count;
+  }
+
+  for (const r of picked) {
+    for (const ing of (r.ingredients || [])) {
+      if (!ingMap[ing.item_id]) {
+        ingMap[ing.item_id] = {
+          item_id: ing.item_id,
+          name: ing.name,
+          total: 0,
+          buy_copper: ing.buy_copper || 0,
+          sell_copper: ing.sell_copper || 0,
+          recipes: [],
+        };
+      }
+      ingMap[ing.item_id].total += ing.amount;
+      ingMap[ing.item_id].recipes.push(r.name);
+    }
+  }
+
+  // For each ingredient, determine source info
+  const ingList = Object.values(ingMap).sort((a,b) => b.total - a.total);
+  const ingRows = ingList.map(ing => {
+    const badges = [];
+    // How many do we have in inventory + chests?
+    const have = itemCounts[ing.item_id] || 0;
+    if (have > 0) badges.push('<span class="badge green"><i class="fa-solid fa-box"></i> have ' + have + '</span>');
+
+    // Check if it's a crop harvest
+    const seed = seeds.find(s => s.harvest_item_id === ing.item_id);
+    if (seed) {
+      const curSeasonName = seasonNames[curSeason];
+      const inSeason = seed.available_seasons && seed.available_seasons.includes(curSeasonName);
+      const bestSeason = seed.best_seasons && seed.best_seasons.includes(curSeasonName);
+      if (bestSeason) badges.push('<span class="badge gold">best season</span>');
+      else if (inSeason) badges.push('<span class="badge green">in season</span>');
+      else badges.push('<span class="badge muted">out of season</span>');
+      const growing = plantedCrops[ing.item_id] || 0;
+      if (growing > 0) badges.push('<span class="badge blue"><i class="fa-solid fa-seedling"></i> growing ' + growing + '</span>');
+    }
+    // Check if buyable from vendor
+    if (ing.buy_copper > 0) badges.push('<span class="badge">vendor ' + fmtMoneyMuted(ing.buy_copper) + '</span>');
+    // Check if trending
+    if (trending.has(ing.item_id)) badges.push('<span class="badge gold glow">trending</span>');
+
+    // Need = total - have
+    const need = Math.max(0, ing.total - have);
+    const totalCost = ing.buy_copper > 0 ? ing.buy_copper * need : 0;
+    const usedIn = [...new Set(ing.recipes)].join(", ");
+    const needBadge = need === 0
+      ? '<span class="badge green"><i class="fa-solid fa-check"></i></span>'
+      : `<strong>${need}</strong>`;
+    return `
+      <tr${need === 0 ? ' style="opacity:0.5"' : ''}>
+        <td>${itemLink(ing.item_id, ing.name)}</td>
+        <td class="num"><strong>${ing.total}</strong></td>
+        <td class="num">${have > 0 ? have : '<span class="muted">0</span>'}</td>
+        <td class="num">${needBadge}</td>
+        <td>${badges.join(" ")}</td>
+        <td class="num">${totalCost > 0 ? fmtMoneyMuted(totalCost) : '<span class="muted">—</span>'}</td>
+        <td class="small muted">${esc(usedIn)}</td>
+      </tr>`;
+  }).join("");
+
   const renderRow = (r) => {
-    const on = u.picked.has(r.recipe_id);
+    const on = pickedSet.has(r.recipe_id);
     const isTrending = trending.has(r.output_item_id);
     return `
       <tr class="menu-row ${on ? 'on' : ''} ${isTrending ? 'trending' : ''}" data-rid="${r.recipe_id}">
@@ -2954,13 +3064,25 @@ function renderMenuPlanner() {
         </table>
       </div>`;
 
+  const ingredientSection = ingList.length === 0 ? '' : `
+    <h2 class="section-head"><i class="fa-solid fa-boxes-stacked"></i> Ingredients needed (${ingList.length})</h2>
+    <div class="ledger-frame">
+      <table class="ledger">
+        <thead><tr><th>Ingredient</th><th class="num">Need</th><th class="num">Have</th><th class="num">Still need</th><th>Status</th><th class="num">Buy cost</th><th>Used in</th></tr></thead>
+        <tbody>${ingRows}</tbody>
+      </table>
+    </div>`;
+
+  const clearBtn = picked.length > 0 ? ' <button id="menuClearBtn" class="btn-sm muted">clear all</button>' : '';
+
   const allRows = visible.map(renderRow).join("");
   return `
-    <h2 class="section-head"><span class="ornament">📜</span> Menu planner</h2>
+    <h2 class="section-head"><i class="fa-solid fa-scroll"></i> Menu planner</h2>
     ${summary}
-    <h2 class="section-head"><span class="ornament">✓</span> Your menu (${picked.length})</h2>
+    <h2 class="section-head"><i class="fa-solid fa-check"></i> Your menu (${picked.length})${clearBtn}</h2>
     ${pickedRows}
-    <h2 class="section-head"><span class="ornament">⚒</span> Add dishes</h2>
+    ${ingredientSection}
+    <h2 class="section-head"><i class="fa-solid fa-hammer"></i> Add dishes</h2>
     <div class="filter-bar">
       <div class="field"><input id="menuFilter" type="text" placeholder="Filter recipes…" value="${esc(u.filter)}"></div>
       <span class="count">${visible.length} recipes available</span>
@@ -3490,10 +3612,10 @@ function bindTab() {
     $$("[data-pick]").forEach(cb => cb.addEventListener("change", (e) => {
       e.stopPropagation();
       const rid = parseInt(cb.dataset.pick);
-      if (cb.checked) STATE.ui.menu.picked.add(rid);
-      else            STATE.ui.menu.picked.delete(rid);
-      renderTab();
+      toggleMenuPick(rid);
     }));
+    const clr = $("#menuClearBtn");
+    if (clr) clr.addEventListener("click", () => clearMenu());
   }
 
   if (STATE.tab === "shopping") {
@@ -3643,6 +3765,10 @@ function connectWS() {
           updateCartWidget();
           if (STATE.tab === "shopping") renderTab();
         }
+        if (m.type === "menu_updated" && m.slot === STATE.slot) {
+          MENU_PICKS = m.menu || [];
+          if (STATE.tab === "menu") renderTab();
+        }
       } catch (_) {}
     };
   };
@@ -3663,7 +3789,7 @@ async function boot() {
     `<option value="${esc(l.name)}">${esc(l.name)}</option>`).join("") || '<option>English</option>';
   $("#lang").value = STATE.lang;
 
-  $("#slot").onchange = () => { STATE.slot = $("#slot").value; loadAll(); loadCart(); };
+  $("#slot").onchange = () => { STATE.slot = $("#slot").value; loadAll(); loadCart(); loadMenu(); };
   $("#lang").onchange = () => { STATE.lang = $("#lang").value; loadAll(); };
 
   // Top-level tab buttons (Plan)
@@ -3713,6 +3839,7 @@ async function boot() {
 
   await loadAll();
   await loadCart();
+  await loadMenu();
   connectWS();
 }
 boot();

@@ -184,6 +184,26 @@ class GameState:
     quests_done: set[int] = field(default_factory=set)
     quests_active: dict[int, int] = field(default_factory=dict)  # qid -> progress
     shop_stock: dict[int, dict[int, int]] = field(default_factory=dict)  # shop_id -> {item_id: amount}
+    item_counts: dict[int, int] = field(default_factory=dict)  # item_id -> total count across inventory + chests
+
+
+def _parse_slot_saves(slot_saves) -> dict[int, int]:
+    """Parse a SlotSave[] array into {item_id: total_stack}."""
+    counts: dict[int, int] = {}
+    if not slot_saves:
+        return counts
+    for slot in slot_saves:
+        try:
+            iis = getattr(slot, "itemInstanceSave", None)
+            if iis is None:
+                continue
+            iid = int(getattr(iis, "itemID", 0))
+            stack = int(getattr(slot, "stack", 0))
+            if iid and stack > 0:
+                counts[iid] = counts.get(iid, 0) + stack
+        except Exception:
+            continue
+    return counts
 
 
 def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.0) -> GameState:
@@ -312,6 +332,55 @@ def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.
     except Exception:
         pass
 
+    # Item counts — inventory + chests + order box + all placed storage furniture
+    item_counts: dict[int, int] = {}
+    try:
+        # Player inventories, hotbars, building inventory, delivery chest
+        for field_name in ("itemsInInventory", "itemsInInventory2",
+                           "itemsInInventoryMultiplayer2", "itemsInInventoryMultiplayer3",
+                           "itemsInInventoryMultiplayer4",
+                           "itemsInBuildingInventory", "orderBox",
+                           "itemsInActionBar", "itemsInActionBar2"):
+            slots = getattr(root, field_name, None)
+            if slots:
+                for iid, stk in _parse_slot_saves(slots).items():
+                    item_counts[iid] = item_counts.get(iid, 0) + stk
+    except Exception:
+        pass
+
+    # Walk all placed objects (chests, barrels, shelves, etc.) for their slots
+    def _walk_placed_items(placed_items):
+        if not placed_items:
+            return
+        for pi in placed_items:
+            try:
+                slots = getattr(pi, "slots", None)
+                if slots:
+                    for iid, stk in _parse_slot_saves(slots).items():
+                        item_counts[iid] = item_counts.get(iid, 0) + stk
+                # Items on surfaces (e.g. items placed on top of tables)
+                for surf in ("itemsOnSurface", "itemsOnSecondarySurface"):
+                    sub = getattr(pi, surf, None)
+                    if sub:
+                        _walk_placed_items(sub)
+                # Placeables inside (bar shelves etc.)
+                sub_inside = getattr(pi, "placeablesInside", None)
+                if sub_inside:
+                    _walk_placed_items(sub_inside)
+            except Exception:
+                continue
+    try:
+        _walk_placed_items(getattr(root, "placedItemsSave", None))
+        _walk_placed_items(getattr(root, "barPlaceablesInside", None))
+        # Work areas (crafting stations etc.)
+        for wa in (getattr(root, "workAreasSave", None) or []):
+            try:
+                _walk_placed_items(getattr(wa, "areaSpaces", None))
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     return GameState(
         slot_id=slot_id,
         save_path=save_path,
@@ -329,6 +398,7 @@ def extract(root, slot_id: str = "", save_path: str = "", save_mtime: float = 0.
         quests_done=quests_done,
         quests_active=quests_active,
         shop_stock=shop_stock,
+        item_counts=item_counts,
     )
 
 

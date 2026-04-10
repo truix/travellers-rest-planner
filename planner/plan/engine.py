@@ -348,6 +348,7 @@ def build_plan(state: GameState, cat: Catalog, language: str = DEFAULT_LANG) -> 
         "unlocked_recipes": len(state.unlocked_recipe_ids),
         "tavern_name": state.tavern_name,
         "player_name": state.player_name,
+        "item_counts": state.item_counts,
     }
 
     # Convert state to a serializable dict

@@ -44,16 +44,33 @@ def _find_uses(item_id: int, cat: Catalog, tr: Translator) -> list[dict]:
                 glabel = tr.get(f"Items/item_name_{grp.group_id}")
                 if not glabel:
                     glabel = grp.name.split(" - ", 1)[1] if " - " in grp.name else grp.name
+                # Find recipes that use this group (via raw_ingredients path_id matching)
+                group_recipes = []
+                for r in cat.recipes_by_id.values():
+                    if not r.active:
+                        continue
+                    for raw in r.raw_ingredients:
+                        if raw.get("path_id") == grp.path_id:
+                            out = cat.items_by_id.get(r.output_item_id)
+                            out_name_id = out.name_id if out else None
+                            group_recipes.append({
+                                "recipe_id": r.recipe_id,
+                                "name": tr.recipe(r.output_item_id, fallback=r.name,
+                                                   output_name_id=out_name_id),
+                                "output_item_id": r.output_item_id,
+                            })
+                            break
                 uses.append({
                     "type": "ingredient_group",
                     "group_name": glabel,
                     "group_id": grp.group_id,
+                    "recipes": group_recipes,
                 })
                 break
     return uses
 
 
-def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
+def item_detail(item_id: int, cat: Catalog, tr: Translator, planted_counts: dict | None = None) -> dict | None:
     """Build a complete dossier on a single item."""
     item = cat.items_by_id.get(item_id)
     if not item:
@@ -123,6 +140,7 @@ def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
     crop = cat.crops_by_harvest_item_id.get(item_id)
     if crop:
         seed = cat.items_by_id.get(crop.seed_item_id)
+        growing = (planted_counts or {}).get(crop.crop_id, 0)
         sources.append({
             "type": "crop",
             "crop_id": crop.crop_id,
@@ -138,6 +156,7 @@ def item_detail(item_id: int, cat: Catalog, tr: Translator) -> dict | None:
                              if crop.best_seasons & (1 << i)],
             "yield_normal": max(1, crop.amount_best_season - 1),
             "yield_best": crop.amount_best_season,
+            "currently_growing": growing,
         })
 
     # 3. Vendors that sell this item (dedupe by vendor name)
