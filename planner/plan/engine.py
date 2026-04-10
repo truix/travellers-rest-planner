@@ -261,6 +261,15 @@ def build_plan(state: GameState, cat: Catalog, language: str = DEFAULT_LANG) -> 
 
     # ---- COOK NOW: trending food (current week) that the player has unlocked
     cook_now: list[CookSuggestion] = []
+    if not calendar:
+        # No trends yet (new save that hasn't hit the first Monday)
+        return Plan(
+            state={"slot_id": state.slot_id, "save_path": state.save_path, "save_mtime": state.save_mtime},
+            today=today_summary,
+            cook_now=[], brew_now=[], plant_now=[],
+            calendar=[],
+            money_silver=round(state.money_copper / 100, 2),
+        )
     cur = calendar[0]
     seen_recipes = set()
     for ti in cur.food_trends:
