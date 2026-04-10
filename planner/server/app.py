@@ -36,6 +36,7 @@ from planner.plan.brewing import all_brew_plans, build_brew_plan
 from planner.plan.brew_planner import build_brew_plan_view
 from planner.plan.seeds import build_seed_table
 from planner.plan.recipes import list_craftables, get_recipe_detail
+from planner.plan.itemdb import item_detail
 from planner.i18n import Translator
 from dataclasses import asdict, is_dataclass
 
@@ -488,6 +489,39 @@ def api_reputation(lang: str = Query(default=DEFAULT_LANG)):
         })
     out.sort(key=lambda x: x["rep_id"])
     return out
+
+
+@app.get("/api/item/{item_id}")
+def api_item(item_id: int, lang: str = Query(default=DEFAULT_LANG)):
+    """Full dossier on any item — sources, uses, vendors, crops, recipes."""
+    cat = load_catalog()
+    tr = Translator(lang)
+    detail = item_detail(item_id, cat, tr)
+    if not detail:
+        return JSONResponse({"error": "item not found"}, status_code=404)
+    return detail
+
+
+@app.get("/api/items")
+def api_items(lang: str = Query(default=DEFAULT_LANG), q: str = Query(default="")):
+    """Search all items by name."""
+    cat = load_catalog()
+    tr = Translator(lang)
+    query = q.strip().lower()
+    results = []
+    for item in cat.items_by_id.values():
+        name = tr.item(item.item_id, item.name_id, item.name)
+        if query and query not in name.lower():
+            continue
+        results.append({
+            "item_id": item.item_id,
+            "name": name,
+            "buy_copper": item.buy_copper,
+            "sell_copper": item.sell_copper,
+            "is_food": item.is_food,
+        })
+    results.sort(key=lambda x: x["name"])
+    return results
 
 
 @app.get("/api/recipes")
