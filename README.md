@@ -102,19 +102,28 @@ Tick recipes to add to your tavern menu. Live aggregate stats: total fuel, total
 
 ### Prerequisites
 - **Travellers Rest** installed via Steam
-- **Python 3.10+** ([python.org/downloads](https://www.python.org/downloads/) — check "Add to PATH" during install)
-- **Git** ([git-scm.com](https://git-scm.com/))
+- **Windows 10/11** (Mac/Linux see manual install below)
 
-### Easy install (Windows)
+That's it. The installer handles everything else.
+
+### One-click install (Windows)
+
+1. Download [`setup.bat`](https://raw.githubusercontent.com/truix/travellers-rest-planner/main/setup.bat) (right-click, save as)
+2. Right-click it, **Run as administrator**
+3. Go make a coffee
+
+It installs Python, Git, clones the repo, extracts your game data, and puts a shortcut on your desktop. Takes about 5 minutes.
+
+After that, just double-click **"Travellers Rest Planner"** on your desktop.
+
+### Already have Python and Git?
 
 ```
 git clone https://github.com/truix/travellers-rest-planner.git
 cd travellers-rest-planner
 ```
 
-Then just double-click **`install.bat`**. It does everything — installs packages, finds your game, extracts all the data, and launches the planner.
-
-After that, double-click **`run.bat`** anytime to start it. It auto-opens your browser.
+Double-click **`install.bat`** to set up, then **`run.bat`** to launch.
 
 ### Manual install
 
