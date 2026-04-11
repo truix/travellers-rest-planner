@@ -64,13 +64,27 @@ def main():
         print(f"\n[!] couldn't find travellers rest automatically.\n")
         print(str(e))
         print()
-        game_dir = input("paste the path to your TravellersRest_Data folder: ").strip().strip('"')
-        if game_dir:
-            os.environ["TR_GAME_DIR"] = game_dir
-            print(f"  using: {game_dir}")
-        else:
+        print("tip: in Steam, right-click Travellers Rest -> Manage -> Browse local")
+        print("     files. That opens the game's root. The path you want is that")
+        print("     folder + \\Windows\\TravellersRest_Data")
+        print()
+        game_dir = input("paste the path to your TravellersRest_Data folder: ").strip().strip('"').strip("'")
+        if not game_dir:
             print("no path given, quitting")
             sys.exit(1)
+        # If they pasted the game root (no \Windows\TravellersRest_Data), fix it up
+        if not os.path.exists(os.path.join(game_dir, "globalgamemanagers")):
+            fixed = os.path.join(game_dir, "Windows", "TravellersRest_Data")
+            if os.path.exists(os.path.join(fixed, "globalgamemanagers")):
+                game_dir = fixed
+                print(f"  (auto-corrected to {game_dir})")
+        if not os.path.exists(os.path.join(game_dir, "globalgamemanagers")):
+            print(f"\n[!] that path doesn't look like TravellersRest_Data —")
+            print(f"    expected a 'globalgamemanagers' file inside it.")
+            print(f"    double-check the path and try again.")
+            sys.exit(1)
+        os.environ["TR_GAME_DIR"] = game_dir
+        print(f"  using: {game_dir}")
 
     # Step 3: Extract game data
     scripts = [

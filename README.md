@@ -136,17 +136,80 @@ pip install -r requirements.txt
 python install.py
 ```
 
-The installer auto-detects your Steam install. If it can't find the game, it'll ask you to paste the path. You can also set it manually:
+The installer auto-detects your Steam install. If it can't find the game, it'll ask you to paste the path. You can also set it manually (the variable must point at the `TravellersRest_Data` folder, **not** the game root):
+
+```bat
+:: Windows (cmd) — no quotes, same terminal as install.py
+set TR_GAME_DIR=C:\Program Files (x86)\Steam\steamapps\common\Travellers Rest\Windows\TravellersRest_Data
+python install.py
+```
+
+```powershell
+# Windows (PowerShell) — quotes required, same terminal as install.py
+$env:TR_GAME_DIR = "C:\Program Files (x86)\Steam\steamapps\common\Travellers Rest\Windows\TravellersRest_Data"
+python install.py
+```
 
 ```bash
-# Windows
-set TR_GAME_DIR=F:\SteamLibrary\steamapps\common\Travellers Rest\Windows\TravellersRest_Data
-
 # macOS
 export TR_GAME_DIR="$HOME/Library/Application Support/Steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data"
+python install.py
 
 # Linux
 export TR_GAME_DIR="$HOME/.steam/steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data"
+python install.py
+```
+
+**Not sure where the game is?** In Steam, right-click *Travellers Rest* → *Manage* → *Browse local files*. That opens the game root. Append `\Windows\TravellersRest_Data` to that path.
+
+**Sanity check before running the installer:**
+
+```bat
+:: cmd
+echo %TR_GAME_DIR%
+dir "%TR_GAME_DIR%\Managed\Assembly-CSharp.dll"
+```
+
+```powershell
+# PowerShell
+echo $env:TR_GAME_DIR
+Test-Path "$env:TR_GAME_DIR\Managed\Assembly-CSharp.dll"
+```
+
+The DLL should exist and be ~16 MB. If it doesn't, the path is wrong.
+
+### Troubleshooting a broken extract
+
+If the planner starts but item icons 404 and item names don't render, one or more of the extraction scripts failed silently. Wipe the generated data and re-run the installer:
+
+```powershell
+# PowerShell
+Remove-Item -Recurse -Force data, dumps -ErrorAction SilentlyContinue
+python install.py
+```
+
+```bat
+:: cmd
+rmdir /s /q data
+rmdir /s /q dumps
+python install.py
+```
+
+```bash
+# macOS / Linux
+rm -rf data dumps
+python install.py
+```
+
+If the installer completes but the verify block at the end prints `MISSING` or `low` for any file, that extractor is the one to investigate. Run it individually and read the error:
+
+```bash
+python scripts/dump_mono.py      # items, recipes, crops, shops, quests
+python scripts/dump_i2l.py       # localization (30 languages)
+python scripts/dump_icons.py     # item icons
+python scripts/dump_coins.py     # gold/silver/copper sprites
+python scripts/dump_hotspots.py  # map hotspots
+python scripts/synthesize.py     # summary tables
 ```
 
 ### Run

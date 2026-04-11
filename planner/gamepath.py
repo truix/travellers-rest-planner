@@ -31,9 +31,18 @@ def _candidates_from_env() -> list[Path]:
     val = os.environ.get("TR_GAME_DIR")
     if not val:
         return []
+    # People paste paths with surrounding quotes or trailing whitespace/slashes
+    val = val.strip().strip('"').strip("'").rstrip("\\/").strip()
+    if not val:
+        return []
     p = Path(val).expanduser().resolve()
-    # Allow either the data dir directly, or the install root
-    return [p, p / DATA_SUBPATH, p / GAME_FOLDER / DATA_SUBPATH]
+    # Accept any of: the data dir directly, the install root, or the steam common folder
+    return [
+        p,
+        p / DATA_SUBPATH,
+        p / GAME_FOLDER / DATA_SUBPATH,
+        p / "TravellersRest_Data",
+    ]
 
 
 def _candidates_from_libraryfolders() -> list[Path]:
@@ -94,24 +103,38 @@ def _candidates_from_default_locations() -> list[Path]:
 @lru_cache(maxsize=1)
 def find_game_data_dir() -> str:
     """Return the absolute path to TravellersRest_Data, or raise."""
-    seen = []
+    seen: list[Path] = []
     for source in (_candidates_from_env(),
                    _candidates_from_libraryfolders(),
                    _candidates_from_default_locations()):
         for cand in source:
             if cand in seen:
                 continue
-            seen.add(cand) if isinstance(seen, set) else seen.append(cand)
+            seen.append(cand)
             if _is_valid_data_dir(cand):
                 return str(cand)
 
+    tried_lines = "\n".join(f"    {p}" for p in seen[:10])
+    if len(seen) > 10:
+        tried_lines += f"\n    ... and {len(seen) - 10} more"
     msg = (
         "Could not find Travellers Rest install. Set the TR_GAME_DIR environment\n"
-        "variable to the path of the TravellersRest_Data folder, e.g.:\n"
-        "  Windows:  set TR_GAME_DIR=F:\\SteamLibrary\\steamapps\\common\\Travellers Rest\\Windows\\TravellersRest_Data\n"
-        "  macOS:    export TR_GAME_DIR=\"$HOME/Library/Application Support/Steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data\"\n"
-        "  Linux:    export TR_GAME_DIR=\"$HOME/.steam/steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data\"\n"
-        f"Tried {len(seen)} candidate path(s)."
+        "variable to the path of the TravellersRest_Data folder (note: it must\n"
+        "point at TravellersRest_Data itself, not the game root).\n"
+        "\n"
+        "  Windows cmd:\n"
+        "    set TR_GAME_DIR=C:\\Program Files (x86)\\Steam\\steamapps\\common\\Travellers Rest\\Windows\\TravellersRest_Data\n"
+        "\n"
+        "  Windows PowerShell:\n"
+        '    $env:TR_GAME_DIR = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Travellers Rest\\Windows\\TravellersRest_Data"\n'
+        "\n"
+        "  macOS:\n"
+        '    export TR_GAME_DIR="$HOME/Library/Application Support/Steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data"\n'
+        "\n"
+        "  Linux:\n"
+        '    export TR_GAME_DIR="$HOME/.steam/steam/steamapps/common/Travellers Rest/Windows/TravellersRest_Data"\n'
+        "\n"
+        f"Tried {len(seen)} candidate path(s):\n{tried_lines}"
     )
     raise FileNotFoundError(msg)
 
